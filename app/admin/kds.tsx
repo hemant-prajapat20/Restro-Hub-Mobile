@@ -6,7 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
+  Modal,
+  TextInput,
+  Vibration
 } from 'react-native';
 import api from '../../utils/api';
 import { io, Socket } from 'socket.io-client';
@@ -16,6 +19,10 @@ export default function KDSScreen() {
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [completedItems, setCompletedItems] = useState<Record<string, string[]>>({});
+  
+  const [prepModalVisible, setPrepModalVisible] = useState(false);
+  const [prepTimeInput, setPrepTimeInput] = useState('');
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -23,8 +30,12 @@ export default function KDSScreen() {
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://192.168.1.100:5000';
     const socket = io(socketUrl);
     
-    socket.on('newOrder', () => {
+    socket.on('newOrder', (order: any) => {
       fetchData();
+      if (order && order.type !== 'Delivery') {
+        Vibration.vibrate([0, 200, 100, 200]);
+        Alert.alert('New Kitchen Order', `Order ${order._id ? order._id.slice(-4) : ''} received!`);
+      }
     });
     socket.on('orderUpdated', () => {
       fetchData();
@@ -147,7 +158,7 @@ export default function KDSScreen() {
 
               {/* Ticket Body */}
               <ScrollView style={styles.ticketBody}>
-                {order.items.map((item: any) => {
+                {order.items.map((item: any, index: number) => {
                   const isComp = compItems.includes(item._id || item.menuItem);
                   return (
                     <TouchableOpacity 
@@ -159,7 +170,14 @@ export default function KDSScreen() {
                         <Text style={[styles.qtyText, isComp && { color: '#64748B' }]}>{item.quantity}x</Text>
                       </View>
                       <View style={{ flex: 1, marginLeft: 12, justifyContent: 'center' }}>
-                        <Text style={[styles.itemName, isComp && styles.itemNameComp]}>{item.name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <Text style={[styles.itemName, isComp && styles.itemNameComp]}>{item.name}</Text>
+                          {index === 0 && !isComp && (
+                            <View style={{ backgroundColor: 'rgba(239,68,68,0.2)', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 }}>
+                              <Text style={{ color: '#EF4444', fontSize: 8, fontWeight: '800', textTransform: 'uppercase' }}>Priority</Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
                       <View>
                         {isComp ? <Text style={{fontSize: 20}}>✅</Text> : <Text style={{fontSize: 20}}>⚪</Text>}
@@ -175,15 +193,9 @@ export default function KDSScreen() {
                   <TouchableOpacity 
                     style={styles.actionBtnPrimary}
                     onPress={() => {
-                      Alert.prompt(
-                        "Prep Time", 
-                        "Enter estimated prep time in minutes (e.g. 15)", 
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Start', onPress: (time) => updateStatus(order._id, 'In Kitchen', Number(time)) }
-                        ],
-                        'plain-text'
-                      );
+                      setActiveOrderId(order._id);
+                      setPrepTimeInput('');
+                      setPrepModalVisible(true);
                     }}
                   >
                     <Text style={styles.actionBtnText}>Start Cooking</Text>
@@ -208,6 +220,40 @@ export default function KDSScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Prep Time Modal */}
+      <Modal visible={prepModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Estimated Prep Time</Text>
+            <Text style={styles.modalSub}>Enter time in minutes (e.g. 15)</Text>
+            <TextInput
+              style={styles.prepInput}
+              keyboardType="number-pad"
+              placeholder="15"
+              placeholderTextColor="#94A3B8"
+              value={prepTimeInput}
+              onChangeText={setPrepTimeInput}
+              autoFocus
+            />
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setPrepModalVisible(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.startBtn} 
+                onPress={() => {
+                  setPrepModalVisible(false);
+                  if (activeOrderId) updateStatus(activeOrderId, 'In Kitchen', Number(prepTimeInput) || undefined);
+                }}
+              >
+                <Text style={styles.startBtnText}>Start Order</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -243,4 +289,15 @@ const styles = StyleSheet.create({
   ticketFooter: { padding: 16, backgroundColor: 'rgba(0,0,0,0.3)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
   actionBtnPrimary: { backgroundColor: '#C5A059', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   actionBtnText: { color: '#fff', fontWeight: '800', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#1E293B', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  modalSub: { color: '#94A3B8', fontSize: 12, marginBottom: 16 },
+  prepInput: { backgroundColor: '#0F172A', color: '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155', marginBottom: 24 },
+  modalFooter: { flexDirection: 'row', gap: 12 },
+  cancelBtn: { flex: 1, backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  cancelBtnText: { color: '#fff', fontWeight: '800' },
+  startBtn: { flex: 1, backgroundColor: '#C5A059', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  startBtnText: { color: '#fff', fontWeight: '800' },
 });
