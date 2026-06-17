@@ -27,8 +27,8 @@ export default function MenuScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
-    name: '', category: '', price: '', description: '', isVeg: true, isAvailable: true
+  const [formData, setFormData] = useState<any>({
+    name: '', category: '', price: '', description: '', isVeg: true, isAvailable: true, taxRate: '5', variants: [], addons: [], isCombo: false, comboItems: []
   });
 
   useEffect(() => {
@@ -75,6 +75,31 @@ export default function MenuScreen() {
     return res.data.url;
   };
 
+  const handleVariantChange = (index: number, field: string, value: string | number) => {
+    const newVariants = [...formData.variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    setFormData({ ...formData, variants: newVariants });
+  };
+  const addVariant = () => setFormData({ ...formData, variants: [...formData.variants, { name: '', price: '' }] });
+  const removeVariant = (index: number) => setFormData({ ...formData, variants: formData.variants.filter((_: any, i: number) => i !== index) });
+
+  const handleAddonChange = (index: number, field: string, value: string | number) => {
+    const newAddons = [...formData.addons];
+    newAddons[index] = { ...newAddons[index], [field]: value };
+    setFormData({ ...formData, addons: newAddons });
+  };
+  const addAddon = () => setFormData({ ...formData, addons: [...formData.addons, { name: '', price: '' }] });
+  const removeAddon = (index: number) => setFormData({ ...formData, addons: formData.addons.filter((_: any, i: number) => i !== index) });
+
+  const toggleComboItem = (itemId: string) => {
+    const current = formData.comboItems;
+    if (current.includes(itemId)) {
+      setFormData({ ...formData, comboItems: current.filter((id: string) => id !== itemId) });
+    } else {
+      setFormData({ ...formData, comboItems: [...current, itemId] });
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.name || !formData.price || !formData.category) {
       Alert.alert('Error', 'Name, price, and category are required');
@@ -93,6 +118,9 @@ export default function MenuScreen() {
       const payload = {
         ...formData,
         price: Number(formData.price),
+        taxRate: Number(formData.taxRate),
+        variants: formData.variants.map((v: any) => ({...v, price: Number(v.price)})),
+        addons: formData.addons.map((a: any) => ({...a, price: Number(a.price)})),
         image: finalImageUrl
       };
 
@@ -130,7 +158,7 @@ export default function MenuScreen() {
 
   const openAdd = () => {
     setEditingId(null);
-    setFormData({ name: '', category: '', price: '', description: '', isVeg: true, isAvailable: true });
+    setFormData({ name: '', category: '', price: '', description: '', isVeg: true, isAvailable: true, taxRate: '5', variants: [], addons: [], isCombo: false, comboItems: [] });
     setImageUri(null);
     setIsModalOpen(true);
   };
@@ -143,7 +171,12 @@ export default function MenuScreen() {
       price: item.price.toString(),
       description: item.description,
       isVeg: item.isVeg,
-      isAvailable: item.isAvailable
+      isAvailable: item.isAvailable,
+      taxRate: item.taxRate ? item.taxRate.toString() : '5',
+      variants: item.variants ? item.variants.map((v:any)=>({...v, price: v.price.toString()})) : [],
+      addons: item.addons ? item.addons.map((a:any)=>({...a, price: a.price.toString()})) : [],
+      isCombo: item.isCombo || false,
+      comboItems: item.comboItems || []
     });
     setImageUri(item.image);
     setIsModalOpen(true);
@@ -262,9 +295,15 @@ export default function MenuScreen() {
                   <Text style={styles.label}>Category</Text>
                   <TextInput style={styles.input} placeholder="Mains" value={formData.category} onChangeText={t => setFormData({...formData, category: t})} />
                 </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.label}>Price (₹)</Text>
                   <TextInput style={styles.input} placeholder="250" keyboardType="numeric" value={formData.price} onChangeText={t => setFormData({...formData, price: t})} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Tax Rate (%)</Text>
+                  <TextInput style={styles.input} placeholder="5" keyboardType="numeric" value={formData.taxRate} onChangeText={t => setFormData({...formData, taxRate: t})} />
                 </View>
               </View>
 
@@ -279,6 +318,67 @@ export default function MenuScreen() {
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Available</Text>
                 <Switch value={formData.isAvailable} onValueChange={v => setFormData({...formData, isAvailable: v})} trackColor={{ true: '#C5A059', false: '#CBD5E1' }} />
+              </View>
+
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Is Combo Meal</Text>
+                <Switch value={formData.isCombo} onValueChange={v => setFormData({...formData, isCombo: v})} trackColor={{ true: '#C5A059', false: '#CBD5E1' }} />
+              </View>
+
+              {formData.isCombo && (
+                <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, marginTop: 12, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={styles.label}>Select Combo Items</Text>
+                  {menuItems.filter(i => !i.isCombo && (i._id || i.id) !== editingId).map((item: any) => {
+                    const itemId = item._id || item.id;
+                    const isSelected = formData.comboItems.includes(itemId);
+                    return (
+                      <TouchableOpacity key={itemId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }} onPress={() => toggleComboItem(itemId)}>
+                        <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: isSelected ? '#C5A059' : '#CBD5E1', backgroundColor: isSelected ? '#C5A059' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSelected && <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✓</Text>}
+                        </View>
+                        <Text style={{ fontSize: 14, color: '#0F172A', fontWeight: '600' }}>{item.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Variants Section */}
+              <View style={{ marginTop: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={[styles.label, {marginTop: 0, marginBottom: 0}]}>Variants</Text>
+                  <TouchableOpacity onPress={addVariant} style={{ backgroundColor: '#E2E8F0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: '#0F172A', fontSize: 10, fontWeight: '800' }}>+ ADD VARIANT</Text>
+                  </TouchableOpacity>
+                </View>
+                {formData.variants.map((variant: any, idx: number) => (
+                  <View key={idx} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <TextInput style={[styles.input, {flex: 2, paddingVertical: 8}]} placeholder="Name" value={variant.name} onChangeText={t => handleVariantChange(idx, 'name', t)} />
+                    <TextInput style={[styles.input, {flex: 1, paddingVertical: 8}]} placeholder="Price" keyboardType="numeric" value={variant.price} onChangeText={t => handleVariantChange(idx, 'price', t)} />
+                    <TouchableOpacity onPress={() => removeVariant(idx)} style={{ padding: 8 }}>
+                      <Text style={{ color: '#EF4444', fontSize: 16 }}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+
+              {/* Addons Section */}
+              <View style={{ marginTop: 24, marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={[styles.label, {marginTop: 0, marginBottom: 0}]}>Add-ons</Text>
+                  <TouchableOpacity onPress={addAddon} style={{ backgroundColor: '#E2E8F0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                    <Text style={{ color: '#0F172A', fontSize: 10, fontWeight: '800' }}>+ ADD ADD-ON</Text>
+                  </TouchableOpacity>
+                </View>
+                {formData.addons.map((addon: any, idx: number) => (
+                  <View key={idx} style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <TextInput style={[styles.input, {flex: 2, paddingVertical: 8}]} placeholder="Name" value={addon.name} onChangeText={t => handleAddonChange(idx, 'name', t)} />
+                    <TextInput style={[styles.input, {flex: 1, paddingVertical: 8}]} placeholder="Price" keyboardType="numeric" value={addon.price} onChangeText={t => handleAddonChange(idx, 'price', t)} />
+                    <TouchableOpacity onPress={() => removeAddon(idx)} style={{ padding: 8 }}>
+                      <Text style={{ color: '#EF4444', fontSize: 16 }}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </View>
 
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={isUploading}>
