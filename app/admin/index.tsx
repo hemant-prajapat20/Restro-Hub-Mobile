@@ -8,11 +8,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Dimensions,
+  Modal
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
 import { RootState } from '../../store';
 import api from '../../utils/api';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 
 // ──────────────────────────────────────────────
 // Stat Card Component (matches web's StatCard)
@@ -57,6 +60,7 @@ export default function AdminDashboard() {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
   const fetchDashboard = async () => {
     try {
@@ -122,7 +126,7 @@ export default function AdminDashboard() {
       <View style={styles.statsRow}>
         <StatCard
           title="Total Revenue"
-          value={`₹${totalRevenue?.toLocaleString()}`}
+          value={`₹${(totalRevenue || 0).toLocaleString()}`}
           subValue="all time"
           trend={4.2}
           icon="🛍️"
@@ -130,7 +134,7 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Today Revenue"
-          value={`₹${dailyRevenue?.toLocaleString()}`}
+          value={`₹${(dailyRevenue || 0).toLocaleString()}`}
           subValue="vs yesterday"
           trend={12.5}
           icon="💳"
@@ -139,8 +143,8 @@ export default function AdminDashboard() {
       </View>
       <View style={styles.statsRow}>
         <StatCard
-          title="Today Orders"
-          value={totalOrders}
+          title="Today Total Order"
+          value={totalOrders || 0}
           subValue="today's count"
           trend={5.4}
           icon="⏱️"
@@ -148,7 +152,7 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Total Staff"
-          value={activeTotalStaff}
+          value={activeTotalStaff || 0}
           subValue="currently active"
           trend={2.1}
           icon="👥"
@@ -156,42 +160,93 @@ export default function AdminDashboard() {
         />
       </View>
 
-      {/* ── AI Business Insights (dark card, same as web) ── */}
-      <View style={styles.aiCard}>
-        <View style={styles.aiHeader}>
-          <Text style={styles.aiHeaderIcon}>⚡</Text>
-          <Text style={styles.aiHeaderTitle}>AI BUSINESS INSIGHTS</Text>
+      {/* ── Revenue Velocity Chart ── */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Revenue Velocity</Text>
+        <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Live sales performance across day parts</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <LineChart
+            data={{
+              labels: ["8am", "12pm", "4pm", "8pm", "12am"],
+              datasets: [{ data: [1200, 5500, 3200, 9800, 3100] }]
+            }}
+            width={Dimensions.get("window").width - 48}
+            height={220}
+            yAxisLabel="₹"
+            yAxisSuffix=""
+            chartConfig={{
+              backgroundColor: "#ffffff",
+              backgroundGradientFrom: "#ffffff",
+              backgroundGradientTo: "#ffffff",
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+              style: { borderRadius: 16 },
+              propsForDots: { r: "4", strokeWidth: "2", stroke: "#4F46E5" }
+            }}
+            bezier
+            style={{ marginVertical: 8, borderRadius: 16 }}
+          />
+        </ScrollView>
+      </View>
+
+      {/* ── Live Staff Activity ── */}
+      <View style={styles.sectionCard}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <View>
+            <Text style={styles.sectionTitle}>Live Staff Activity</Text>
+            <Text style={{ fontSize: 12, color: '#64748B' }}>Currently clocked in members</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/admin/staff')}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#6366F1', textTransform: 'uppercase', letterSpacing: 1 }}>View All</Text>
+          </TouchableOpacity>
         </View>
-        {aiInsights && aiInsights.length > 0 ? (
-          aiInsights.map((insight: any, i: number) => (
-            <View key={i} style={styles.aiInsightBox}>
-              <Text style={styles.aiInsightTitle}>{insight.title}</Text>
-              <Text style={styles.aiInsightDesc}>{insight.description}</Text>
-              {insight.action && (
-                <Text style={styles.aiInsightAction}>{insight.action}</Text>
-              )}
+        
+        {staff.length > 0 ? (
+          staff.map((member: any, i: number) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#4F46E5', fontWeight: 'bold' }}>{member.name.charAt(0)}</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{member.name}</Text>
+                  <Text style={{ fontSize: 12, color: '#64748B' }}>{member.role}</Text>
+                </View>
+              </View>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: member.status === 'Clocked In' ? '#DCFCE7' : '#FEF3C7' }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: member.status === 'Clocked In' ? '#16A34A' : '#D97706' }}>{member.status}</Text>
+              </View>
             </View>
           ))
         ) : (
-          <View style={styles.aiInsightBox}>
-            <Text style={styles.aiInsightDesc}>Not enough data to generate insights yet.</Text>
-          </View>
+          <Text style={styles.emptyText}>No staff currently clocked in.</Text>
         )}
       </View>
 
       {/* ── Sales Mix by Category ── */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Sales Mix by Category</Text>
+        <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Revenue distribution by items</Text>
         {categoryData.length > 0 ? (
-          categoryData.slice(0, 5).map((cat: any, i: number) => (
-            <View key={i} style={styles.categoryRow}>
-              <View style={styles.categoryLeft}>
-                <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
-                <Text style={styles.categoryName}>{cat.name}</Text>
-              </View>
-              <Text style={styles.categoryValue}>{cat.value}%</Text>
-            </View>
-          ))
+          <PieChart
+            data={categoryData.slice(0, 5).map((c: any) => ({
+              name: c.name,
+              population: c.value,
+              color: c.color || '#' + Math.floor(Math.random()*16777215).toString(16),
+              legendFontColor: '#64748B',
+              legendFontSize: 12
+            }))}
+            width={Dimensions.get("window").width - 48}
+            height={200}
+            chartConfig={{
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor={"population"}
+            backgroundColor={"transparent"}
+            paddingLeft={"15"}
+            absolute
+          />
         ) : (
           <Text style={styles.emptyText}>No category data available yet.</Text>
         )}
@@ -267,9 +322,9 @@ export default function AdminDashboard() {
             const invId = order._id || order.id || '';
             const shortId = order.transactionId || (invId ? invId.slice(-8).toUpperCase() : 'N/A');
             return (
-              <View key={i} style={styles.tableRow}>
+              <TouchableOpacity key={i} style={styles.tableRow} onPress={() => setSelectedInvoice(order)}>
                 <View style={{ flex: 2 }}>
-                  <Text style={styles.billId}>#{shortId}</Text>
+                  <Text style={[styles.billId, { color: '#4F46E5' }]}>#{shortId}</Text>
                   <Text style={styles.billDate}>
                     {new Date(order.createdAt || order.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                   </Text>
@@ -282,7 +337,7 @@ export default function AdminDashboard() {
                 <Text style={[styles.orderAmount, { flex: 1, textAlign: 'right' }]}>
                   ₹{order.total?.toLocaleString() || order.amount?.toLocaleString()}
                 </Text>
-              </View>
+              </TouchableOpacity>
             );
           })
         ) : (
@@ -290,48 +345,71 @@ export default function AdminDashboard() {
         )}
       </View>
 
-      {/* ── Live Staff Activity ── */}
-      <View style={[styles.sectionCard, { marginBottom: 40 }]}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Live Staff Activity</Text>
-            <Text style={styles.sectionSubtitle}>Currently clocked in members</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/admin/staff' as any)}>
-            <Text style={styles.viewAllBtn}>VIEW ALL</Text>
-          </TouchableOpacity>
-        </View>
-
-        {staff.length > 0 ? (
-          staff.map((member: any, i: number) => (
-            <View key={i} style={styles.staffRow}>
-              <View style={styles.staffLeft}>
-                <Image
-                  source={{ uri: member.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}` }}
-                  style={styles.staffAvatar}
-                />
-                <View>
-                  <Text style={styles.staffName}>{member.name}</Text>
-                  <Text style={styles.staffRole}>{member.role}</Text>
-                </View>
-              </View>
-              <View style={[
-                styles.staffStatusBadge,
-                { backgroundColor: member.status === 'Clocked In' ? '#DCFCE7' : '#FEF3C7' }
-              ]}>
-                <Text style={[
-                  styles.staffStatusText,
-                  { color: member.status === 'Clocked In' ? '#15803D' : '#B45309' }
-                ]}>
-                  {member.status}
-                </Text>
-              </View>
+      {/* ── Invoice Modal ── */}
+      <Modal visible={!!selectedInvoice} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B' }}>Invoice Details</Text>
+              <TouchableOpacity onPress={() => setSelectedInvoice(null)} style={{ padding: 8, backgroundColor: '#F1F5F9', borderRadius: 20 }}>
+                <Text style={{ fontSize: 16, color: '#64748B', fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
             </View>
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No staff currently clocked in</Text>
-        )}
-      </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedInvoice && (
+                <View>
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 12, color: '#64748B' }}>Bill ID</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#1E293B' }}>#{selectedInvoice.transactionId || (selectedInvoice._id || '').slice(-8).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <View>
+                      <Text style={{ fontSize: 12, color: '#64748B' }}>Date</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{new Date(selectedInvoice.createdAt || selectedInvoice.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 12, color: '#64748B' }}>Module</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#4F46E5' }}>{selectedInvoice.type}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>Items</Text>
+                  {(selectedInvoice.items || []).map((item: any, i: number) => (
+                    <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, color: '#334155' }}>{item.item?.name || item.name}</Text>
+                        <Text style={{ fontSize: 12, color: '#94A3B8' }}>{item.quantity} x ₹{item.price || item.item?.price}</Text>
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>₹{(item.quantity * (item.price || item.item?.price || 0)).toLocaleString()}</Text>
+                    </View>
+                  ))}
+
+                  <View style={{ borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 16, marginTop: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 14, color: '#64748B' }}>Subtotal</Text>
+                      <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600' }}>₹{(selectedInvoice.subtotal || 0).toLocaleString()}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 14, color: '#64748B' }}>Tax (10%)</Text>
+                      <Text style={{ fontSize: 14, color: '#1E293B', fontWeight: '600' }}>₹{(selectedInvoice.tax || 0).toLocaleString()}</Text>
+                    </View>
+                    {selectedInvoice.discount > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 14, color: '#10B981' }}>Discount</Text>
+                        <Text style={{ fontSize: 14, color: '#10B981', fontWeight: '600' }}>-₹{(selectedInvoice.discount || 0).toLocaleString()}</Text>
+                      </View>
+                    )}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>Total Paid</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#4F46E5' }}>₹{(selectedInvoice.total || selectedInvoice.amount || 0).toLocaleString()}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
