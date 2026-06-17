@@ -233,7 +233,7 @@ export default function BarLoungeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Filter & Search Bar ── */}
+      
       <View style={styles.topBar}>
         <TextInput
           style={styles.searchInput}
@@ -256,7 +256,7 @@ export default function BarLoungeScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Menu Grid ── */}
+      
       <ScrollView contentContainerStyle={styles.menuGrid}>
         <TouchableOpacity style={styles.addNewBtn} onPress={handleOpenAdd}>
           <Text style={styles.addNewBtnText}>+ Add New Liquor</Text>
@@ -301,8 +301,8 @@ export default function BarLoungeScreen() {
         <View style={{height: 100}} />
       </ScrollView>
 
-      {/* ── Bottom Cart Summary Bar ── */}
-      {cart.length > 0 && !isCartOpen && !isCheckoutOpen && (
+      
+      {cart.length > 0 && !isCartOpen && !isCheckoutOpen ? (
         <TouchableOpacity style={styles.bottomSummary} onPress={() => setIsCartOpen(true)}>
           <View>
             <Text style={styles.bottomSummaryText}>{cart.length} Items</Text>
@@ -310,9 +310,9 @@ export default function BarLoungeScreen() {
           </View>
           <Text style={styles.bottomSummaryTotal}>₹{total.toFixed(2)}</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
 
-      {/* ── Liquor Modal ── */}
+      
       <Modal visible={isModalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsModalOpen(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -369,7 +369,7 @@ export default function BarLoungeScreen() {
         </View>
       </Modal>
 
-      {/* ── Cart Modal ── */}
+      
       <Modal visible={isCartOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsCartOpen(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -411,7 +411,7 @@ export default function BarLoungeScreen() {
         </View>
       </Modal>
 
-      {/* ── Checkout Modal ── */}
+      
       <Modal visible={isCheckoutOpen} animationType="fade" transparent={true}>
         <View style={styles.checkoutOverlay}>
           <View style={styles.checkoutCard}>

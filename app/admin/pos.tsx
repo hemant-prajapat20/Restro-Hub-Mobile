@@ -219,7 +219,7 @@ export default function POSScreen() {
       </ScrollView>
 
       {/* ── Bottom Cart Summary Bar ── */}
-      {cart.length > 0 && !isCartOpen && !isCheckoutOpen && (
+      {cart.length > 0 && !isCartOpen && !isCheckoutOpen ? (
         <TouchableOpacity style={styles.bottomSummary} onPress={() => setIsCartOpen(true)}>
           <View>
             <Text style={styles.bottomSummaryText}>{cart.length} Items</Text>
@@ -227,7 +227,7 @@ export default function POSScreen() {
           </View>
           <Text style={styles.bottomSummaryTotal}>₹{total.toFixed(2)}</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
 
       {/* ── Cart Modal ── */}
       <Modal visible={isCartOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsCartOpen(false)}>

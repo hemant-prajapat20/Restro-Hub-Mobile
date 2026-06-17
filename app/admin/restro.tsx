@@ -20,13 +20,13 @@ const INITIAL_SIGNATURES = [
 ];
 
 const INITIAL_PDRS = [
-  { id: 'P1', name: 'Maharani Suite (PDR 1)', capacity: 12, status: 'Reserved', minSpend: 25000 },
-  { id: 'P2', name: 'Chamber of Nawabs (PDR 2)', capacity: 8, status: 'Occupied', minSpend: 15000 },
-  { id: 'P3', name: 'Maison Glass Gazebo (PDR 3)', capacity: 6, status: 'Available', minSpend: 10000 }
+  { id: 'P1', name: 'Maharani Suite (PDR 1)', capacity: 12, status: 'Reserved', minSpend: 25000, notes: 'Golden decor canopy, personal premium soundbar' },
+  { id: 'P2', name: 'Chamber of Nawabs (PDR 2)', capacity: 8, status: 'Occupied', minSpend: 15000, notes: 'Authentic royal low-sitting divan experience' },
+  { id: 'P3', name: 'Maison Glass Gazebo (PDR 3)', capacity: 6, status: 'Available', minSpend: 10000, notes: 'Panoramic sky-view with personal sommelier service' }
 ];
 
 export default function RestroSignatureScreen() {
-  const [activeTab, setActiveTab] = useState<'Menu' | 'PDR'>('Menu');
+  const [activeTab, setActiveTab] = useState<'display' | 'billing'>('display');
   
   const [signatures, setSignatures] = useState<any[]>([]);
   const [pdrs, setPdrs] = useState<any[]>([]);
@@ -34,13 +34,13 @@ export default function RestroSignatureScreen() {
 
   // Billing states
   const [cart, setCart] = useState<any[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [orderState, setOrderState] = useState<'idle' | 'sending' | 'submitted'>('idle');
+  const [targetRoomId, setTargetRoomId] = useState<string>('');
 
   // Modals for CRUD
   const [isSigModalOpen, setIsSigModalOpen] = useState(false);
@@ -237,8 +237,12 @@ export default function RestroSignatureScreen() {
       if (existing) {
         return prev.map(i => i.itemId === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { itemId: item.id, name: item.name, price: item.price, quantity: 1 }];
+      return [...prev, { itemId: item.id, name: item.name, price: item.price, quantity: 1, course: item.course, directive: '' }];
     });
+  };
+
+  const updateCartDirective = (itemId: string, directive: string) => {
+    setCart(prev => prev.map(i => i.itemId === itemId ? { ...i, directive } : i));
   };
 
   const removeFromCart = (itemId: string) => {
@@ -251,10 +255,33 @@ export default function RestroSignatureScreen() {
     });
   };
 
-  const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const sgst = subTotal * 0.025;
-  const cgst = subTotal * 0.025;
-  const total = subTotal + sgst + cgst;
+  const applyRestroDiscount = () => {
+    const code = discountCode.toUpperCase().trim();
+    if (code === 'AMEXCENTURION') {
+      setAppliedDiscount(30);
+      Alert.alert('Discount Applied', '30% AMEX Centurion discount applied.');
+    } else if (code === 'VIPROYAL') {
+      setAppliedDiscount(20);
+      Alert.alert('Discount Applied', '20% VIP Royal discount applied.');
+    } else if (code === 'FINE10') {
+      setAppliedDiscount(10);
+      Alert.alert('Discount Applied', '10% Fine Dining discount applied.');
+    } else {
+      setAppliedDiscount(0);
+      Alert.alert('Invalid Code', 'The entered code is not valid.');
+    }
+  };
+
+  const cartSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const selectedSuite = pdrs.find(p => p.id === targetRoomId);
+  const suiteFee = selectedSuite ? selectedSuite.minSpend : 0;
+  const totalSubtotal = cartSubtotal + suiteFee;
+  const discountAmount = Math.round(totalSubtotal * (appliedDiscount / 100));
+  const amountAfterDiscount = totalSubtotal - discountAmount;
+  const serviceCharge = Math.round(amountAfterDiscount * 0.15); // 15% luxury silver service
+  const cgst = Math.round(amountAfterDiscount * 0.09); // 9% CGST
+  const sgst = Math.round(amountAfterDiscount * 0.09); // 9% SGST
+  const total = amountAfterDiscount + serviceCharge + cgst + sgst;
 
   const handleProcessPayment = async () => {
     if (!paymentMethod || !customerName.trim() || customerPhone.length !== 10) {
@@ -266,20 +293,22 @@ export default function RestroSignatureScreen() {
     
     try {
       await api.post('/orders', {
-        type: 'Signature',
+        type: 'Restro',
         items: cart.map(c => ({
           menuItem: c.itemId,
           name: c.name,
-          category: 'Signature',
+          category: c.course || 'Signature',
           quantity: c.quantity,
           price: c.price,
-          status: 'Served'
+          status: 'Served',
+          notes: c.directive || ''
         })),
-        subtotal: subTotal,
-        tax: sgst + cgst,
+        subtotal: cartSubtotal,
+        tax: cgst + sgst,
         total: total,
         paymentMethod: paymentMethod,
         status: 'Completed',
+        tableId: targetRoomId,
         customerDetails: { name: customerName, phone: customerPhone }
       });
       
@@ -295,39 +324,93 @@ export default function RestroSignatureScreen() {
   const handleResetOrder = () => {
     setCart([]);
     setOrderState('idle');
-    setIsCartOpen(false);
-    setIsCheckoutOpen(false);
     setPaymentMethod(null);
     setCustomerName('');
     setCustomerPhone('');
+    setDiscountCode('');
+    setAppliedDiscount(0);
   };
 
   return (
     <View style={styles.container}>
-      {/* ── Tabs ── */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity style={[styles.tab, activeTab === 'Menu' && styles.activeTab]} onPress={() => setActiveTab('Menu')}>
-          <Text style={[styles.tabText, activeTab === 'Menu' && styles.activeTabText]}>Signature Menu</Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'display' && styles.activeTab]} onPress={() => setActiveTab('display')}>
+          <Text style={[styles.tabText, activeTab === 'display' && styles.activeTabText]}>Suites & Signatures</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, activeTab === 'PDR' && styles.activeTab]} onPress={() => setActiveTab('PDR')}>
-          <Text style={[styles.tabText, activeTab === 'PDR' && styles.activeTabText]}>PDR Management</Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'billing' && styles.activeTab]} onPress={() => setActiveTab('billing')}>
+          <Text style={[styles.tabText, activeTab === 'billing' && styles.activeTabText]}>Royal POS Counter</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'Menu' ? (
+        {activeTab === 'display' ? (
           <View style={styles.listContainer}>
-            <TouchableOpacity style={styles.addNewBtn} onPress={handleOpenAddSig}>
-              <Text style={styles.addNewBtnText}>+ Add New Signature Dish</Text>
-            </TouchableOpacity>
+            
+            {/* ── Royal Suites & private dining cabins ── */}
+            <View style={styles.sectionHeaderCol}>
+              <Text style={styles.sectionTitle}>Royal Suites & Private Dining</Text>
+              <TouchableOpacity style={styles.addNewBtnSmall} onPress={handleOpenAddPdr}>
+                <Text style={styles.addNewBtnTextSmall}>+ Add Suite</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              {pdrs.map((pdr, i) => (
+                <View key={i} style={styles.pdrCard}>
+                  <View style={styles.rowSpaceBetween}>
+                    <Text style={styles.pdrTitle}>{pdr.name}</Text>
+                    <View style={styles.actionIconsRow}>
+                      <TouchableOpacity onPress={() => handleOpenEditPdr(pdr)} style={styles.iconBtn}>
+                        <Text style={styles.iconBtnText}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleDeletePdr(pdr.id)} style={styles.iconBtn}>
+                        <Text style={styles.iconBtnText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  <View style={[styles.statusBadge, { backgroundColor: pdr.status === 'Available' ? '#DCFCE7' : pdr.status === 'Occupied' ? '#FEE2E2' : '#FEF3C7', alignSelf: 'flex-start', marginVertical: 8 }]}>
+                    <Text style={[styles.statusText, { color: pdr.status === 'Available' ? '#16A34A' : pdr.status === 'Occupied' ? '#DC2626' : '#D97706' }]}>
+                      {pdr.status}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.pdrNotes}>"{pdr.notes || 'No overview provided.'}"</Text>
+                  
+                  <View style={styles.pdrStatsRow}>
+                    <View>
+                      <Text style={styles.pdrStatLabel}>CAPACITY</Text>
+                      <Text style={styles.pdrStatValue}>{pdr.capacity} VIPs</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.pdrStatLabel}>MIN SPEND</Text>
+                      <Text style={[styles.pdrStatValue, { color: '#F59E0B' }]}>₹{pdr.minSpend}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* ── Featured chef specifications ── */}
+            <View style={styles.sectionHeaderCol}>
+              <Text style={styles.sectionTitle}>Featured Chef Specifications</Text>
+              <TouchableOpacity style={styles.addNewBtnSmall} onPress={handleOpenAddSig}>
+                <Text style={styles.addNewBtnTextSmall}>+ Propose Dish</Text>
+              </TouchableOpacity>
+            </View>
 
             {signatures.map((item, i) => (
               <View key={i} style={styles.card}>
                 <Image source={{ uri: item.image }} style={styles.cardImage} />
                 <View style={styles.cardInfo}>
                   <View style={styles.rowSpaceBetween}>
-                    <View style={styles.courseBadge}>
-                      <Text style={styles.courseBadgeText}>{item.course}</Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={styles.courseBadge}>
+                        <Text style={styles.courseBadgeText}>{item.course}</Text>
+                      </View>
+                      <View style={[styles.courseBadge, { backgroundColor: item.isVeg ? '#DCFCE7' : '#FEE2E2' }]}>
+                        <Text style={[styles.courseBadgeText, { color: item.isVeg ? '#16A34A' : '#DC2626' }]}>{item.isVeg ? 'VEG' : 'NON-VEG'}</Text>
+                      </View>
                     </View>
                     <View style={styles.actionIconsRow}>
                       <TouchableOpacity onPress={() => handleOpenEditSig(item)} style={styles.iconBtn}>
@@ -339,65 +422,146 @@ export default function RestroSignatureScreen() {
                     </View>
                   </View>
                   <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.cardChef}>By {item.chefName}</Text>
                   <Text style={styles.cardDesc}>{item.description}</Text>
+                  
                   <View style={styles.rowSpaceBetween}>
                     <Text style={styles.cardPrice}>₹{item.price}</Text>
-                    <TouchableOpacity style={styles.addButton} onPress={() => addToCart(item)}>
-                      <Text style={styles.addButtonText}>Add to Order</Text>
-                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
             ))}
           </View>
         ) : (
-          <View style={styles.listContainer}>
-            <TouchableOpacity style={styles.addNewBtn} onPress={handleOpenAddPdr}>
-              <Text style={styles.addNewBtnText}>+ Add New PDR Room</Text>
-            </TouchableOpacity>
+          <View style={styles.billingContainer}>
+            {/* Royal POS Menu Selection */}
+            <Text style={styles.sectionTitle}>Imperial Menu Offerings</Text>
+            <View style={styles.posGridContainer}>
+              {signatures.map((dish, i) => (
+                <TouchableOpacity key={i} style={styles.posMenuItemCard} onPress={() => addToCart(dish)}>
+                  <Image source={{ uri: dish.image }} style={styles.posMenuItemImage} />
+                  <View style={styles.posMenuItemInfo}>
+                    <Text style={styles.posMenuItemName} numberOfLines={1}>{dish.name}</Text>
+                    <Text style={styles.posMenuItemChef} numberOfLines={1}>Under {dish.chefName}</Text>
+                    <View style={styles.rowSpaceBetween}>
+                      <Text style={styles.posMenuItemPrice}>₹{dish.price}</Text>
+                      <Text style={styles.posMenuItemAdd}>Add +</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-            {pdrs.map((pdr, i) => (
-              <View key={i} style={[styles.card, { padding: 16 }]}>
-                <View style={styles.rowSpaceBetween}>
-                  <Text style={styles.cardTitle}>{pdr.name}</Text>
-                  <View style={styles.actionIconsRow}>
-                    <TouchableOpacity onPress={() => handleOpenEditPdr(pdr)} style={styles.iconBtn}>
-                      <Text style={styles.iconBtnText}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeletePdr(pdr.id)} style={styles.iconBtn}>
-                      <Text style={styles.iconBtnText}>🗑️</Text>
+            {/* Cart & Checkout embedded below menu */}
+            <View style={styles.checkoutBox}>
+              <Text style={styles.sectionTitle}>Royal Order Ticket</Text>
+              
+              {cart.length === 0 ? (
+                <Text style={styles.emptyCartText}>No dishes selected.</Text>
+              ) : (
+                <View>
+                  {cart.map((item, i) => (
+                    <View key={i} style={styles.cartItem}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cartItemName}>{item.name}</Text>
+                        <Text style={styles.cartItemPrice}>₹{item.price} each</Text>
+                        <TextInput 
+                          style={styles.directiveInput} 
+                          placeholder="Chef directives (e.g. less spicy)" 
+                          value={item.directive} 
+                          onChangeText={(val) => updateCartDirective(item.itemId, val)} 
+                        />
+                      </View>
+                      <View style={styles.qtyControl}>
+                        <TouchableOpacity onPress={() => removeFromCart(item.itemId)} style={styles.qtyBtn}><Text style={styles.qtyBtnText}>-</Text></TouchableOpacity>
+                        <Text style={styles.qtyText}>{item.quantity}</Text>
+                        <TouchableOpacity onPress={() => addToCart({ id: item.itemId })} style={styles.qtyBtn}><Text style={styles.qtyBtnText}>+</Text></TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+
+                  <Text style={[styles.sectionTitle, { marginTop: 24, fontSize: 12 }]}>Active VIP Suite</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+                    {pdrs.map(pdr => (
+                      <TouchableOpacity 
+                        key={pdr.id} 
+                        style={[styles.suiteChip, targetRoomId === pdr.id && styles.suiteChipActive]}
+                        onPress={() => setTargetRoomId(pdr.id)}
+                      >
+                        <Text style={[styles.suiteChipText, targetRoomId === pdr.id && styles.suiteChipTextActive]}>{pdr.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  <View style={styles.discountRow}>
+                    <TextInput style={styles.discountInput} placeholder="Promo Code (e.g. VIPROYAL)" value={discountCode} onChangeText={setDiscountCode} />
+                    <TouchableOpacity style={styles.discountBtn} onPress={applyRestroDiscount}>
+                      <Text style={styles.discountBtnText}>APPLY</Text>
                     </TouchableOpacity>
                   </View>
+
+                  <View style={styles.cartTotalsRow}>
+                    <Text style={styles.cartTotalsText}>Items Subtotal</Text>
+                    <Text style={styles.cartTotalsText}>₹{cartSubtotal}</Text>
+                  </View>
+                  {suiteFee > 0 && (
+                    <View style={styles.cartTotalsRow}>
+                      <Text style={styles.cartTotalsText}>Suite Minimum Spend</Text>
+                      <Text style={styles.cartTotalsText}>₹{suiteFee}</Text>
+                    </View>
+                  )}
+                  {discountAmount > 0 && (
+                    <View style={styles.cartTotalsRow}>
+                      <Text style={[styles.cartTotalsText, { color: '#EF4444' }]}>Privilege Deduction ({appliedDiscount}%)</Text>
+                      <Text style={[styles.cartTotalsText, { color: '#EF4444' }]}>- ₹{discountAmount}</Text>
+                    </View>
+                  )}
+                  <View style={styles.cartTotalsRow}>
+                    <Text style={styles.cartTotalsText}>Imperial Service Charge (15%)</Text>
+                    <Text style={styles.cartTotalsText}>₹{serviceCharge}</Text>
+                  </View>
+                  <View style={styles.cartTotalsRow}>
+                    <Text style={styles.cartTotalsText}>CGST (9%)</Text>
+                    <Text style={styles.cartTotalsText}>₹{cgst}</Text>
+                  </View>
+                  <View style={styles.cartTotalsRow}>
+                    <Text style={styles.cartTotalsText}>SGST (9%)</Text>
+                    <Text style={styles.cartTotalsText}>₹{sgst}</Text>
+                  </View>
+                  <View style={[styles.cartTotalsRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 8, marginTop: 8 }]}>
+                    <Text style={styles.cartTotalsText}>Total Bill Balance</Text>
+                    <Text style={styles.cartGrandTotal}>₹{total}</Text>
+                  </View>
+
+                  <Text style={[styles.sectionTitle, { marginTop: 24, fontSize: 12 }]}>Guest Demographics (Required)</Text>
+                  <TextInput style={[styles.formInput, { marginTop: 8 }]} placeholder="Guest Name" value={customerName} onChangeText={setCustomerName} />
+                  <TextInput style={styles.formInput} placeholder="Guest Contact" keyboardType="numeric" maxLength={10} value={customerPhone} onChangeText={(val) => setCustomerPhone(val.replace(/[^0-9]/g, ''))} />
+
+                  <Text style={[styles.sectionTitle, { marginTop: 12, fontSize: 12 }]}>Payment Tender</Text>
+                  <View style={styles.paymentMethodsRow}>
+                    {['Cash', 'UPI', 'Card'].map(method => (
+                      <TouchableOpacity key={method} style={[styles.paymentMethodBtn, paymentMethod === method && styles.paymentMethodBtnActive]} onPress={() => setPaymentMethod(method)}>
+                        <Text style={[styles.paymentMethodText, paymentMethod === method && styles.paymentMethodTextActive]}>{method}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity style={[styles.completePayBtn, (!paymentMethod || !customerName || customerPhone.length !== 10) && styles.disabledBtn]} onPress={handleProcessPayment} disabled={!paymentMethod || !customerName || customerPhone.length !== 10 || orderState === 'sending'}>
+                    <Text style={styles.payBtnText}>{orderState === 'sending' ? 'Processing...' : 'AUTHORIZE ROYAL POS CHECKOUT'}</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: pdr.status === 'Available' ? '#DCFCE7' : pdr.status === 'Occupied' ? '#FEE2E2' : '#FEF3C7', alignSelf: 'flex-start', marginVertical: 8 }]}>
-                  <Text style={[styles.statusText, { color: pdr.status === 'Available' ? '#16A34A' : pdr.status === 'Occupied' ? '#DC2626' : '#D97706' }]}>
-                    {pdr.status}
-                  </Text>
-                </View>
-                <Text style={styles.cardDesc}>Capacity: {pdr.capacity} Guests | Min Spend: ₹{pdr.minSpend}</Text>
-              </View>
-            ))}
+              )}
+            </View>
+
           </View>
         )}
-        <View style={{height: 100}} /> {/* Spacer for bottom bar */}
+        <View style={{height: 100}} />
       </ScrollView>
 
-      {/* ── Bottom Cart Summary Bar ── */}
-      {cart.length > 0 && !isCartOpen && !isCheckoutOpen && (
-        <TouchableOpacity style={styles.bottomSummary} onPress={() => setIsCartOpen(true)}>
-          <View>
-            <Text style={styles.bottomSummaryText}>{cart.length} Items</Text>
-            <Text style={styles.bottomSummarySub}>View Cart</Text>
-          </View>
-          <Text style={styles.bottomSummaryTotal}>₹{total.toFixed(2)}</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* ── Signature Modal ── */}
       <Modal visible={isSigModalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsSigModalOpen(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{editingSig ? 'Edit Signature' : 'New Signature'}</Text>
+            <Text style={styles.modalTitle}>{editingSig ? 'Edit Dish' : 'Propose Dish'}</Text>
             <TouchableOpacity onPress={() => setIsSigModalOpen(false)}><Text style={styles.closeBtn}>Close</Text></TouchableOpacity>
           </View>
           <ScrollView style={styles.formBody}>
@@ -436,15 +600,14 @@ export default function RestroSignatureScreen() {
         </View>
       </Modal>
 
-      {/* ── PDR Modal ── */}
       <Modal visible={isPdrModalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsPdrModalOpen(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{editingPdr ? 'Edit PDR' : 'New PDR'}</Text>
+            <Text style={styles.modalTitle}>{editingPdr ? 'Edit Suite' : 'Add Suite'}</Text>
             <TouchableOpacity onPress={() => setIsPdrModalOpen(false)}><Text style={styles.closeBtn}>Close</Text></TouchableOpacity>
           </View>
           <ScrollView style={styles.formBody}>
-            <Text style={styles.formLabel}>Room Name *</Text>
+            <Text style={styles.formLabel}>Suite Name *</Text>
             <TextInput style={styles.formInput} value={pdrName} onChangeText={setPdrName} placeholder="e.g. Maharani Suite" />
             
             <View style={{flexDirection:'row', gap: 16}}>
@@ -461,91 +624,13 @@ export default function RestroSignatureScreen() {
             <Text style={styles.formLabel}>Status</Text>
             <TextInput style={styles.formInput} value={pdrStatus} onChangeText={setPdrStatus} placeholder="Available / Occupied" />
 
-            <Text style={styles.formLabel}>Notes / Benefits</Text>
+            <Text style={styles.formLabel}>Overview & Benefits</Text>
             <TextInput style={[styles.formInput, { height: 80 }]} value={pdrNotes} onChangeText={setPdrNotes} placeholder="Golden decor..." multiline />
             
             <TouchableOpacity style={styles.saveBtn} onPress={handleSavePdr}>
-              <Text style={styles.saveBtnText}>Save Room</Text>
+              <Text style={styles.saveBtnText}>Save Suite</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
-      </Modal>
-
-      {/* ── Cart Modal ── */}
-      <Modal visible={isCartOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsCartOpen(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Signature Order ({cart.length})</Text>
-            <TouchableOpacity onPress={() => setIsCartOpen(false)}><Text style={styles.closeBtn}>Close</Text></TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.cartList}>
-            {cart.map((item, i) => (
-              <View key={i} style={styles.cartItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cartItemName}>{item.name}</Text>
-                  <Text style={styles.cartItemPrice}>₹{item.price} each</Text>
-                </View>
-                <View style={styles.qtyControl}>
-                  <TouchableOpacity onPress={() => removeFromCart(item.itemId)} style={styles.qtyBtn}><Text style={styles.qtyBtnText}>-</Text></TouchableOpacity>
-                  <Text style={styles.qtyText}>{item.quantity}</Text>
-                  <TouchableOpacity onPress={() => addToCart({ id: item.itemId })} style={styles.qtyBtn}><Text style={styles.qtyBtnText}>+</Text></TouchableOpacity>
-                </View>
-                <Text style={styles.cartItemTotal}>₹{item.price * item.quantity}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.cartFooter}>
-            <View style={styles.cartTotalsRow}>
-              <Text style={styles.cartTotalsText}>Subtotal</Text>
-              <Text style={styles.cartTotalsText}>₹{subTotal}</Text>
-            </View>
-            <View style={styles.cartTotalsRow}>
-              <Text style={styles.cartTotalsText}>Total Due</Text>
-              <Text style={styles.cartGrandTotal}>₹{total.toFixed(2)}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.payBtn} onPress={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}>
-              <Text style={styles.payBtnText}>PROCEED TO PAYMENT</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── Checkout Modal ── */}
-      <Modal visible={isCheckoutOpen} animationType="fade" transparent={true}>
-        <View style={styles.checkoutOverlay}>
-          <View style={styles.checkoutCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Complete Payment</Text>
-              <TouchableOpacity onPress={() => setIsCheckoutOpen(false)}><Text style={styles.closeBtn}>X</Text></TouchableOpacity>
-            </View>
-
-            <View style={styles.checkoutBody}>
-              <Text style={styles.checkoutLabel}>Customer Details (Required)</Text>
-              <TextInput style={styles.checkoutInput} placeholder="Customer Name" value={customerName} onChangeText={setCustomerName} />
-              <TextInput style={[styles.checkoutInput, customerPhone.length > 0 && customerPhone.length !== 10 && styles.inputError]} placeholder="Mobile Number (10 digits)" keyboardType="numeric" maxLength={10} value={customerPhone} onChangeText={(val) => setCustomerPhone(val.replace(/[^0-9]/g, ''))} />
-
-              <Text style={styles.checkoutLabel}>Payment Method</Text>
-              <View style={styles.paymentMethodsRow}>
-                {['Cash', 'UPI', 'Card'].map(method => (
-                  <TouchableOpacity key={method} style={[styles.paymentMethodBtn, paymentMethod === method && styles.paymentMethodBtnActive]} onPress={() => setPaymentMethod(method)}>
-                    <Text style={[styles.paymentMethodText, paymentMethod === method && styles.paymentMethodTextActive]}>{method}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.checkoutSummary}>
-                <Text style={styles.cartTotalsText}>Grand Total</Text>
-                <Text style={styles.cartGrandTotal}>₹{total.toFixed(2)}</Text>
-              </View>
-
-              <TouchableOpacity style={[styles.completePayBtn, (!paymentMethod || !customerName || customerPhone.length !== 10) && styles.disabledBtn]} onPress={handleProcessPayment} disabled={!paymentMethod || !customerName || customerPhone.length !== 10 || orderState === 'sending'}>
-                <Text style={styles.payBtnText}>{orderState === 'sending' ? 'Processing...' : 'COMPLETE PAYMENT'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </Modal>
 
@@ -559,80 +644,95 @@ const styles = StyleSheet.create({
   tabContainer: { flexDirection: 'row', backgroundColor: '#fff', padding: 8, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
   activeTab: { backgroundColor: '#F59E0B' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  tabText: { fontSize: 13, fontWeight: '700', color: '#64748B', textTransform: 'uppercase' },
   activeTabText: { color: '#fff' },
 
   scrollContent: { padding: 16 },
-
   listContainer: { gap: 16 },
-  addNewBtn: { backgroundColor: '#FEF3C7', paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#F59E0B', borderStyle: 'dashed' },
-  addNewBtnText: { color: '#D97706', fontSize: 15, fontWeight: '700' },
+  billingContainer: { gap: 24 },
 
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
+  sectionHeaderCol: { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 16, gap: 12, marginTop: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', textTransform: 'uppercase' },
+  addNewBtnSmall: { backgroundColor: '#FEF3C7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#F59E0B' },
+  addNewBtnTextSmall: { color: '#D97706', fontSize: 12, fontWeight: '700' },
+
+  pdrCard: { backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', width: 280, marginRight: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  pdrTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  pdrNotes: { fontSize: 12, color: '#64748B', fontStyle: 'italic', marginBottom: 16, height: 36 },
+  pdrStatsRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12 },
+  pdrStatLabel: { fontSize: 9, color: '#94A3B8', fontWeight: '700', letterSpacing: 0.5 },
+  pdrStatValue: { fontSize: 14, fontWeight: '800', color: '#334155' },
+
+  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
   cardImage: { width: '100%', height: 180, resizeMode: 'cover' },
   cardInfo: { padding: 16 },
   rowSpaceBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   courseBadge: { backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginBottom: 8 },
-  courseBadgeText: { color: '#D97706', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 4 },
+  courseBadgeText: { color: '#D97706', fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
+  cardChef: { fontSize: 12, fontWeight: '700', color: '#F59E0B', marginBottom: 6 },
   cardDesc: { fontSize: 13, color: '#64748B', marginBottom: 16 },
-  cardPrice: { fontSize: 18, fontWeight: '800', color: '#F59E0B' },
+  cardPrice: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   
   actionIconsRow: { flexDirection: 'row', gap: 12 },
   iconBtn: { padding: 4 },
-  iconBtnText: { fontSize: 18 },
-
-  addButton: { backgroundColor: '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  addButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  iconBtnText: { fontSize: 16 },
 
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  statusText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
 
-  bottomSummary: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#0F172A', borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 },
-  bottomSummaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  bottomSummarySub: { color: '#94A3B8', fontSize: 12 },
-  bottomSummaryTotal: { color: '#F59E0B', fontSize: 20, fontWeight: '800' },
+  posGridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  posMenuItemCard: { width: '48%', backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
+  posMenuItemImage: { width: '100%', height: 100, resizeMode: 'cover' },
+  posMenuItemInfo: { padding: 12 },
+  posMenuItemName: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
+  posMenuItemChef: { fontSize: 9, color: '#94A3B8', fontWeight: '600', marginBottom: 8 },
+  posMenuItemPrice: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  posMenuItemAdd: { fontSize: 10, fontWeight: '800', color: '#F59E0B', textTransform: 'uppercase' },
+
+  checkoutBox: { backgroundColor: '#fff', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  emptyCartText: { fontSize: 14, color: '#94A3B8', fontStyle: 'italic', marginTop: 12 },
+  cartItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  cartItemName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  cartItemPrice: { fontSize: 12, color: '#64748B' },
+  directiveInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, marginTop: 4 },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 8, marginLeft: 12 },
+  qtyBtn: { paddingHorizontal: 10, paddingVertical: 6 },
+  qtyBtnText: { fontSize: 16, fontWeight: '700', color: '#64748B' },
+  qtyText: { fontSize: 14, fontWeight: '700', width: 24, textAlign: 'center' },
+  
+  suiteChip: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
+  suiteChipActive: { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' },
+  suiteChipText: { fontSize: 11, fontWeight: '700', color: '#64748B' },
+  suiteChipTextActive: { color: '#F59E0B' },
+  
+  discountRow: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 16 },
+  discountInput: { flex: 1, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 12, fontSize: 13 },
+  discountBtn: { backgroundColor: '#0F172A', paddingHorizontal: 16, justifyContent: 'center', borderRadius: 8 },
+  discountBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  cartTotalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  cartTotalsText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  cartGrandTotal: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+
+  paymentMethodsRow: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 20 },
+  paymentMethodBtn: { flex: 1, paddingVertical: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, alignItems: 'center' },
+  paymentMethodBtnActive: { borderColor: '#F59E0B', backgroundColor: '#FEF3C7' },
+  paymentMethodText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  paymentMethodTextActive: { color: '#F59E0B' },
+
+  completePayBtn: { backgroundColor: '#F59E0B', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  disabledBtn: { opacity: 0.5 },
+  payBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
 
   modalContainer: { flex: 1, backgroundColor: '#F8FAFC' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  closeBtn: { fontSize: 14, fontWeight: '600', color: '#EF4444' },
-  
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  closeBtn: { fontSize: 14, fontWeight: '700', color: '#EF4444' },
   formBody: { padding: 20 },
-  formLabel: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 },
+  formLabel: { fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6, textTransform: 'uppercase' },
   formInput: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', padding: 14, borderRadius: 10, fontSize: 15, marginBottom: 16, color: '#0F172A' },
   saveBtn: { backgroundColor: '#F59E0B', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 40 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
-  cartList: { flex: 1, padding: 16 },
-  cartItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  cartItemName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  cartItemPrice: { fontSize: 12, color: '#64748B' },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 8, marginHorizontal: 12 },
-  qtyBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  qtyBtnText: { fontSize: 16, fontWeight: '600', color: '#64748B' },
-  qtyText: { fontSize: 14, fontWeight: '700', width: 24, textAlign: 'center' },
-  cartItemTotal: { fontSize: 14, fontWeight: '700', color: '#0F172A', width: 60, textAlign: 'right' },
-
-  cartFooter: { backgroundColor: '#fff', padding: 20, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  cartTotalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  cartTotalsText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  cartGrandTotal: { fontSize: 20, fontWeight: '800', color: '#F59E0B' },
-  payBtn: { backgroundColor: '#F59E0B', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  payBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
-  checkoutOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
-  checkoutCard: { backgroundColor: '#fff', borderRadius: 24, overflow: 'hidden' },
-  checkoutBody: { padding: 20 },
-  checkoutLabel: { fontSize: 12, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 },
-  checkoutInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', padding: 16, borderRadius: 12, marginBottom: 16, fontSize: 14 },
-  inputError: { borderColor: '#EF4444' },
-  paymentMethodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  paymentMethodBtn: { flex: 1, minWidth: '30%', paddingVertical: 16, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, alignItems: 'center' },
-  paymentMethodBtnActive: { borderColor: '#F59E0B', backgroundColor: '#FEF3C7' },
-  paymentMethodText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  paymentMethodTextActive: { color: '#F59E0B' },
-  checkoutSummary: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  completePayBtn: { backgroundColor: '#10B981', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  disabledBtn: { opacity: 0.5 },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
