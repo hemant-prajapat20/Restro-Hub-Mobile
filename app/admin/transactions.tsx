@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import api from '../../utils/api';
 import { io, Socket } from 'socket.io-client';
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +108,9 @@ export default function TransactionsScreen() {
                 <View key={invId} style={styles.orderCard}>
                   <View style={styles.cardHeader}>
                     <View>
-                      <Text style={styles.orderIdText}>#{shortId}</Text>
+                      <TouchableOpacity onPress={() => router.push(`/admin/invoice/${invId}`)}>
+                        <Text style={styles.orderIdText}>#{shortId}</Text>
+                      </TouchableOpacity>
                       <Text style={styles.dateText}>
                         {new Date(order.createdAt || order.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                       </Text>
@@ -131,8 +135,15 @@ export default function TransactionsScreen() {
                   </View>
 
                   <View style={styles.cardFooter}>
-                    <Text style={styles.totalText}>Total Amount</Text>
-                    <Text style={styles.totalAmount}>₹{(order.total || order.amount || 0).toLocaleString()}</Text>
+                    <View>
+                      <Text style={styles.totalText}>Total Amount</Text>
+                      <Text style={styles.totalAmount}>₹{(order.total || order.amount || 0).toLocaleString()}</Text>
+                    </View>
+                    {order.status !== 'Cancelled' && (
+                      <TouchableOpacity onPress={() => router.push(`/admin/invoice/${invId}`)}>
+                        <Text style={styles.viewReceiptText}>VIEW RECEIPT</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               );
@@ -177,4 +188,5 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#F8FAFC', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   totalText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   totalAmount: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  viewReceiptText: { fontSize: 10, fontWeight: '800', color: '#6366F1', textTransform: 'uppercase', letterSpacing: 1 },
 });
