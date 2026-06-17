@@ -59,9 +59,13 @@ export default function DeliveryScreen() {
       const mapped = res.data.map((order: any) => ({
         ...order,
         id: 'DEL-' + order._id.slice(-4).toUpperCase(),
+        source: order.source || 'Direct',
         itemsStr: order.items.map((i: any) => `${i.quantity}x ${i.name}`).join(', '),
         time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         date: new Date(order.createdAt).toLocaleDateString(),
+        customerName: order.customerDetails?.name || 'Guest',
+        customerPhone: order.customerDetails?.phone || 'N/A',
+        paymentMethod: order.paymentMethod || 'Cash',
       }));
       setDeliveryOrders(mapped);
     } catch (e) {
@@ -101,7 +105,8 @@ export default function DeliveryScreen() {
         subtotal,
         tax,
         total: subtotal + tax,
-        status: 'In Kitchen'
+        status: 'In Kitchen',
+        paymentMethod: 'Cash'
       });
       setShowAddOrder(false);
       setNewCustomerName('');
@@ -231,11 +236,15 @@ export default function DeliveryScreen() {
                   </Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Text style={styles.orderId}>{order.id}</Text>
-                    <Text style={styles.orderTime}>{order.time}</Text>
+                    <Text style={styles.orderTime}>{order.time} • {order.date}</Text>
+                    <View style={[styles.payBadge, order.paymentMethod === 'Online' ? { backgroundColor: '#EEF2FF' } : { backgroundColor: '#ECFDF5' }]}>
+                      <Text style={[styles.payText, order.paymentMethod === 'Online' ? { color: '#4F46E5' } : { color: '#059669' }]}>{order.paymentMethod}</Text>
+                    </View>
                   </View>
                   <Text style={styles.orderItems} numberOfLines={2}>{order.itemsStr}</Text>
+                  <Text style={styles.customerInfo}>{order.customerName} ({order.customerPhone})</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.orderTotal}>₹{order.total}</Text>
@@ -405,13 +414,13 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: '#0F172A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   addBtnText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase' },
 
-  kpiContainer: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  kpiBoxPending: { flex: 1, backgroundColor: '#0F172A', padding: 16, borderRadius: 16 },
-  kpiBoxTitle: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
-  kpiBoxValue: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 4 },
-  kpiBoxCompleted: { flex: 1, backgroundColor: '#ECFDF5', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#A7F3D0' },
-  kpiBoxTitleCompleted: { color: '#059669', fontSize: 12, fontWeight: '700' },
-  kpiBoxValueCompleted: { color: '#047857', fontSize: 28, fontWeight: '900', marginTop: 4 },
+  kpiContainer: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  kpiBoxPending: { flex: 1, backgroundColor: '#0F172A', padding: 12, borderRadius: 12 },
+  kpiBoxTitle: { color: '#94A3B8', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  kpiBoxValue: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 2 },
+  kpiBoxCompleted: { flex: 1, backgroundColor: '#ECFDF5', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0' },
+  kpiBoxTitleCompleted: { color: '#059669', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  kpiBoxValueCompleted: { color: '#047857', fontSize: 20, fontWeight: '900', marginTop: 2 },
 
   feedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   feedTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
@@ -421,13 +430,16 @@ const styles = StyleSheet.create({
   feedTabText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   feedTabTextActive: { color: '#0F172A' },
 
-  orderCard: { backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', marginBottom: 12 },
+  orderCard: { backgroundColor: '#fff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F1F5F9', marginBottom: 8 },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
-  sourceIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  orderId: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  orderTime: { fontSize: 10, color: '#94A3B8', fontWeight: '700' },
-  orderItems: { fontSize: 12, color: '#475569', marginTop: 4 },
-  orderTotal: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  sourceIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  orderId: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  orderTime: { fontSize: 9, color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' },
+  orderItems: { fontSize: 11, color: '#475569', marginTop: 4 },
+  customerInfo: { fontSize: 10, color: '#64748B', backgroundColor: '#F8FAFC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, alignSelf: 'flex-start' },
+  payBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  payText: { fontSize: 8, fontWeight: '800', textTransform: 'uppercase' },
+  orderTotal: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginTop: 4 },
   statusSuccess: { backgroundColor: '#ECFDF5' },
   statusInfo: { backgroundColor: '#EFF6FF' },
