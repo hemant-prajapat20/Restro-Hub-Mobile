@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  Alert
+  Alert,
+  Vibration
 } from 'react-native';
 import api from '../../utils/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { io } from 'socket.io-client';
 
 export default function TablesScreen() {
   const [activeFloor, setActiveFloor] = useState(1);
@@ -25,8 +27,21 @@ export default function TablesScreen() {
 
   // Modals & States
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [modalTab, setModalTab] = useState<'checkout' | 'add_items'>('checkout');
+  const [modalTab, setModalTab] = useState<'checkout' | 'add_items' | 'split'>('checkout');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Reservations
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [showAddReservationModal, setShowAddReservationModal] = useState(false);
+  const [newResName, setNewResName] = useState('');
+  const [newResPhone, setNewResPhone] = useState('');
+  const [newResGuests, setNewResGuests] = useState('2');
+  const [newResTime, setNewResTime] = useState('19:00');
+
+  // Merge / Split
+  const [isMergeMode, setIsMergeMode] = useState(false);
+  const [selectedMergeTables, setSelectedMergeTables] = useState<string[]>([]);
+  const [splitWays, setSplitWays] = useState('2');
   
   // Billing
   const [discountCode, setDiscountCode] = useState('');
@@ -42,19 +57,29 @@ export default function TablesScreen() {
 
   useEffect(() => {
     fetchData();
+    const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://192.168.1.100:5000';
+    const socket = io(socketUrl);
+    
+    socket.on('newOrder', () => { fetchData(); Vibration.vibrate([0, 100, 100, 100]); });
+    socket.on('orderUpdated', () => { fetchData(); });
+    socket.on('tableUpdated', () => { fetchData(); });
+    
+    return () => { socket.disconnect(); };
   }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [tRes, mRes, oRes] = await Promise.all([
+      const [tRes, mRes, oRes, rRes] = await Promise.all([
         api.get('/tables'),
         api.get('/menu'),
-        api.get('/orders')
+        api.get('/orders'),
+        api.get('/reservations')
       ]);
       setTables(tRes.data.map((t: any) => ({ ...t, id: t._id || t.id })));
       setMenuItems(mRes.data.data || mRes.data);
       setDbOrders(oRes.data.filter((o: any) => o.status !== 'Completed' && o.status !== 'Cancelled' && o.type !== 'Delivery'));
+      setReservations(rRes.data.data || rRes.data);
     } catch (e) {
       console.log('Error fetching table data', e);
     } finally {
@@ -193,6 +218,51 @@ export default function TablesScreen() {
     }
   };
 
+  const handleMerge = async () => {
+    if (selectedMergeTables.length < 2) return;
+    try {
+      await api.post('/tables/merge', { primaryTableId: selectedMergeTables[0], secondaryTableIds: selectedMergeTables.slice(1) });
+      Alert.alert('Success', 'Tables merged');
+      setSelectedMergeTables([]);
+      setIsMergeMode(false);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to merge tables');
+    }
+  };
+
+  const handleSplit = async () => {
+    if (!selectedTableId) return;
+    try {
+      await api.post('/tables/split', { primaryTableId: selectedTableId });
+      Alert.alert('Success', 'Tables split successfully');
+      setModalTab('checkout');
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to split tables');
+    }
+  };
+
+  const handleCreateReservation = async () => {
+    if (!newResName || !newResPhone) return;
+    try {
+      await api.post('/reservations', {
+        customerName: newResName,
+        customerPhone: newResPhone,
+        guests: Number(newResGuests),
+        time: newResTime,
+        date: new Date().toISOString()
+      });
+      Alert.alert('Success', 'Reservation created');
+      setShowAddReservationModal(false);
+      setNewResName('');
+      setNewResPhone('');
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to create reservation');
+    }
+  };
+
   const handleAddTable = async () => {
     if (!newTableIdentifier) return;
     try {
@@ -237,11 +307,28 @@ export default function TablesScreen() {
           <Text style={[styles.floorTabText, activeFloor === 2 && styles.floorTabTextActive]}>Rooftop</Text>
         </TouchableOpacity>
       </View>
-      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddTableModal(true)}>
-          <Text style={styles.addBtnTxt}>+ Add Table</Text>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <TouchableOpacity style={[styles.addBtn, {flex: 1}, isMergeMode && {backgroundColor: '#C5A059'}]} onPress={() => { setIsMergeMode(!isMergeMode); setSelectedMergeTables([]); }}>
+          <Text style={styles.addBtnTxt}>{isMergeMode ? 'CANCEL MERGE' : 'MERGE TABLES'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.addBtn, {flex: 1}]} onPress={() => setShowAddTableModal(true)}>
+          <Text style={styles.addBtnTxt}>ADD TABLE</Text>
         </TouchableOpacity>
       </View>
+
+      {isMergeMode && (
+        <View style={{ backgroundColor: '#FEFCE8', padding: 16, marginHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#CA8A04', marginBottom: 16 }}>
+          <Text style={{ fontWeight: '800', color: '#CA8A04' }}>Merge Mode Active</Text>
+          <Text style={{ fontSize: 12, color: '#A16207', marginBottom: 12 }}>Select the primary table, then secondary tables to link.</Text>
+          <TouchableOpacity 
+            disabled={selectedMergeTables.length < 2}
+            style={[styles.actBtn, {backgroundColor: '#CA8A04', opacity: selectedMergeTables.length < 2 ? 0.5 : 1}]}
+            onPress={handleMerge}
+          >
+            <Text style={{color: '#fff', fontWeight: '800'}}>MERGE {selectedMergeTables.length} TABLES</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.grid}>
         {isLoading ? <ActivityIndicator size="large" color="#C5A059" /> : floorTables.map(table => {
@@ -252,8 +339,20 @@ export default function TablesScreen() {
           return (
             <TouchableOpacity 
               key={table._id} 
-              style={[styles.tableCard, selectedTableId === table._id && { borderColor: '#C5A059', borderWidth: 2 }]}
-              onPress={() => setSelectedTableId(table._id)}
+              style={[
+                styles.tableCard, 
+                selectedTableId === table._id && !isMergeMode && { borderColor: '#C5A059', borderWidth: 2 },
+                isMergeMode && selectedMergeTables.includes(table._id) && { borderColor: '#CA8A04', borderWidth: 2, backgroundColor: '#FEFCE8' }
+              ]}
+              onPress={() => {
+                if (isMergeMode) {
+                  if (table.status !== 'Available') { Alert.alert('Error', 'Only available tables can be merged'); return; }
+                  setSelectedMergeTables(prev => prev.includes(table._id) ? prev.filter(id => id !== table._id) : [...prev, table._id]);
+                } else {
+                  if (table.status === 'Merged') { Alert.alert('Info', 'Manage this from its primary table.'); return; }
+                  setSelectedTableId(table._id);
+                }
+              }}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View>
@@ -274,6 +373,50 @@ export default function TablesScreen() {
             </TouchableOpacity>
           )
         })}
+        
+        {/* Advanced Reservations Section */}
+        <View style={{ padding: 20, marginTop: 16, width: '100%', backgroundColor: '#fff', borderRadius: 32, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 8, elevation: 4, marginBottom: 20 }}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 8}}>
+            <Text style={{fontSize: 14, fontWeight: '800', color: '#0F172A', flex: 1}} numberOfLines={1} adjustsFontSizeToFit>ADVANCED RESERVATIONS</Text>
+            <TouchableOpacity style={{backgroundColor: '#C5A059', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20}} onPress={() => setShowAddReservationModal(true)}>
+              <Text style={{color: '#fff', fontSize: 9, fontWeight: '800'}}>ADD RESERVATION</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{gap: 16}}>
+            {reservations.length === 0 ? (
+              <Text style={{textAlign: 'center', color: '#94A3B8', marginVertical: 20}}>No reservations found.</Text>
+            ) : reservations.map((res: any) => (
+              <View key={res._id || res.name} style={{flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#F1F5F9'}}>
+                <View style={{width: 56, height: 56, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center'}}>
+                  <Text style={{color: '#0F172A', fontWeight: '800', fontSize: 12}}>{res.time}</Text>
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={{fontSize: 14, fontWeight: '800', color: res.status === 'Confirmed' ? '#0F172A' : '#C5A059'}}>{res.customerName || res.name}</Text>
+                  <Text style={{fontSize: 10, color: '#64748B', fontWeight: '600', marginTop: 4}}>{res.customerPhone || res.phone} • {res.guests} Guests • Table Tab {res.tableNumber || '-'} • Floor {res.floor || 1}</Text>
+                </View>
+                <View style={{alignItems: 'flex-end'}}>
+                  {res.status === 'Confirmed' ? (
+                    <View style={{paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#ECFDF5', borderRadius: 12}}>
+                      <Text style={{color: '#059669', fontSize: 9, fontWeight: '800'}}>CONFIRMED</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={{paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#10B981', borderRadius: 12}}
+                      onPress={async () => {
+                        await api.patch(`/reservations/${res._id}/status`, { status: 'Confirmed' });
+                        fetchData();
+                      }}
+                    >
+                      <Text style={{color: '#fff', fontSize: 9, fontWeight: '800'}}>CONFIRM</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
         <View style={{height: 100}} />
       </ScrollView>
 
@@ -281,34 +424,102 @@ export default function TablesScreen() {
       <Modal visible={!!selectedTableId} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Table #{selectedTable?.number}</Text>
-                <Text style={{color: '#64748B', fontSize: 12, fontWeight: '700'}}>Status: {selectedTable?.status}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 16}}>
+                <View style={{width: 60, height: 60, borderRadius: 30, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center'}}>
+                  <Text style={{color: '#fff', fontSize: 18, fontWeight: '900'}}>#{selectedTable?.number}</Text>
+                </View>
+                <View>
+                  <Text style={{fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: 4}}>Table Billing & POS</Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                    <View style={[styles.badge, {backgroundColor: getStatusColor(selectedTable?.status || '').bg}]}>
+                      <Text style={[styles.badgeTxt, {color: getStatusColor(selectedTable?.status || '').text}]}>{selectedTable?.status}</Text>
+                    </View>
+                    {selectedTable?.linkedTables?.length > 0 && (
+                      <TouchableOpacity style={{backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4}} onPress={handleSplit}>
+                        <Text style={{fontSize: 8, fontWeight: '800', color: '#0F172A'}}>SPLIT TABLES</Text>
+                      </TouchableOpacity>
+                    )}
+                    <Text style={{fontSize: 10, fontWeight: '800', color: '#94A3B8'}}>• {selectedTable?.floor === 1 ? 'GROUND FLOOR' : 'ROOFTOP'}</Text>
+                  </View>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => { setSelectedTableId(null); setModalTab('checkout'); }}><Text style={{fontSize: 24, color: '#94A3B8'}}>×</Text></TouchableOpacity>
+              <TouchableOpacity style={{width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center'}} onPress={() => { setSelectedTableId(null); setModalTab('checkout'); }}>
+                <Text style={{fontSize: 20, color: '#94A3B8', fontWeight: '300'}}>×</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.modalTabs}>
-              <TouchableOpacity style={[styles.mTab, modalTab === 'checkout' && styles.mTabActive]} onPress={() => setModalTab('checkout')}>
-                <Text style={[styles.mTabTxt, modalTab === 'checkout' && styles.mTabTxtActive]}>Checkout</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.mTab, modalTab === 'add_items' && styles.mTabActive]} onPress={() => setModalTab('add_items')}>
-                <Text style={[styles.mTabTxt, modalTab === 'add_items' && styles.mTabTxtActive]}>Add Items</Text>
-              </TouchableOpacity>
+            <View style={{paddingHorizontal: 20, paddingTop: 20}}>
+              <View style={{flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 4, borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9'}}>
+                <TouchableOpacity style={{flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: modalTab === 'checkout' ? '#fff' : 'transparent', borderRadius: 12, shadowColor: modalTab === 'checkout' ? '#000' : 'transparent', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 4, elevation: modalTab === 'checkout' ? 2 : 0}} onPress={() => setModalTab('checkout')}>
+                  <Text style={{fontSize: 10, fontWeight: '800', color: modalTab === 'checkout' ? '#0F172A' : '#94A3B8'}}>BILL & CHECKOUT</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: modalTab === 'add_items' ? '#fff' : 'transparent', borderRadius: 12, shadowColor: modalTab === 'add_items' ? '#000' : 'transparent', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 4, elevation: modalTab === 'add_items' ? 2 : 0}} onPress={() => setModalTab('add_items')}>
+                  <Text style={{fontSize: 10, fontWeight: '800', color: modalTab === 'add_items' ? '#0F172A' : '#94A3B8'}}>TAKE ORDER (+ MENU)</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {modalTab === 'checkout' && (
               <ScrollView style={{ padding: 16 }}>
+                {selectedTable?.status === 'Cleaning' && (
+                  <View style={{backgroundColor: '#FFF7ED', padding: 16, borderRadius: 12, borderColor: '#FFEDD5', borderWidth: 1, marginBottom: 16}}>
+                    <Text style={{fontSize: 12, fontWeight: '800', color: '#EA580C', textAlign: 'center'}}>SANITIZATION IN PROGRESS</Text>
+                    <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#EA580C', marginTop: 12}]} onPress={async () => {
+                      await api.put(`/tables/${selectedTableId}`, { status: 'Available' });
+                      setTableOrders(prev => { const cp = {...prev}; delete cp[selectedTableId!]; return cp; });
+                      setSelectedTableId(null);
+                      fetchData();
+                    }}>
+                      <Text style={{color: '#fff', fontWeight: '800', fontSize: 10}}>Complete Reset & Open Table</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {selectedTable?.status === 'Reserved' && (
+                  <View style={{backgroundColor: '#FEFCE8', padding: 16, borderRadius: 12, borderColor: '#FEF08A', borderWidth: 1, marginBottom: 16}}>
+                    <Text style={{fontSize: 12, fontWeight: '800', color: '#CA8A04', textAlign: 'center'}}>TABLE RESERVED</Text>
+                    <Text style={{fontSize: 10, color: '#A16207', textAlign: 'center', marginTop: 4}}>This table is locked by a reservation.</Text>
+                  </View>
+                )}
+
                 {combinedItems.length === 0 ? (
-                  <Text style={{textAlign: 'center', color: '#94A3B8', marginTop: 40}}>No items ordered yet.</Text>
+                  <View style={{borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed', borderRadius: 24, padding: 32, alignItems: 'center', marginVertical: 20}}>
+                    <Text style={{fontSize: 24, color: '#94A3B8', marginBottom: 12}}>🍽️</Text>
+                    <Text style={{fontSize: 14, fontWeight: '800', color: '#64748B', marginBottom: 8}}>NO ACTIVE BILLING</Text>
+                    <Text style={{fontSize: 10, color: '#94A3B8', textAlign: 'center', paddingHorizontal: 20, marginBottom: 20, lineHeight: 16}}>There are no items recorded yet. Choose "Take Order (+ Menu)" to register customers' dining dockets.</Text>
+                    <TouchableOpacity style={{backgroundColor: '#0F172A', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12}} onPress={() => setModalTab('add_items')}>
+                      <Text style={{color: '#fff', fontSize: 10, fontWeight: '800'}}>TAKE TABLE ORDER</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <View>
                     <View style={styles.billItems}>
+                      <View style={{flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 8}}>
+                        <Text style={{fontSize: 10, fontWeight: '800', color: '#64748B'}}>TABLE ORDER DOCKET</Text>
+                        <TouchableOpacity onPress={() => {
+                          setTableOrders(prev => { const cp = {...prev}; delete cp[selectedTableId!]; return cp; });
+                          api.put(`/tables/${selectedTableId}`, { status: 'Available' }).then(fetchData);
+                        }}>
+                          <Text style={{fontSize: 10, fontWeight: '800', color: '#EF4444'}}>RESET ORDER</Text>
+                        </TouchableOpacity>
+                      </View>
                       {combinedItems.map((item: any) => (
-                        <View key={item.itemId} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <Text style={{ flex: 1, fontSize: 12, color: '#0F172A', fontWeight: '700' }}>{item.quantity}x {item.name} {!item.isSent && '(Unsent)'}</Text>
-                          <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '800' }}>₹{item.price * item.quantity}</Text>
+                        <View key={item.itemId} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                          <View style={{flex: 1}}>
+                            <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '700' }}>{item.quantity}x {item.name} {!item.isSent && '(Unsent)'}</Text>
+                          </View>
+                          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                            <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '800' }}>₹{item.price * item.quantity}</Text>
+                            <TouchableOpacity onPress={() => {
+                               setTableOrders(prev => {
+                                 const items = prev[selectedTableId!] || [];
+                                 return { ...prev, [selectedTableId!]: items.filter(i => i.itemId !== item.itemId) };
+                               });
+                            }}>
+                              <Text style={{fontSize: 14, color: '#EF4444'}}>×</Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       ))}
                     </View>
@@ -365,17 +576,22 @@ export default function TablesScreen() {
                         ))}
                       </View>
                     </View>
-
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 24, marginBottom: 40 }}>
-                      <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#0F172A'}]} onPress={handleSendToKitchen}>
-                        <Text style={{color: '#fff', fontWeight: '800', fontSize: 12}}>Send KOT</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#10B981', flex: 2}]} onPress={handleSettle}>
-                        <Text style={{color: '#fff', fontWeight: '800', fontSize: 12}}>Settle Bill</Text>
-                      </TouchableOpacity>
-                    </View>
                   </View>
                 )}
+                
+                <View style={{marginTop: 24, marginBottom: 40}}>
+                  <Text style={{fontSize: 10, fontWeight: '800', color: '#94A3B8', marginBottom: 12}}>LIFECYCLE MANAGEMENT</Text>
+                  <View style={{flexDirection: 'row', gap: 8}}>
+                    {['Available', 'Occupied', 'Reserved', 'Cleaning'].map(status => (
+                      <TouchableOpacity key={status} style={{flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: selectedTable?.status === status ? '#0F172A' : '#E2E8F0', backgroundColor: selectedTable?.status === status ? '#0F172A' : '#fff', alignItems: 'center'}} onPress={async () => {
+                        await api.put(`/tables/${selectedTableId}`, { status });
+                        fetchData();
+                      }}>
+                        <Text style={{fontSize: 9, fontWeight: '800', color: selectedTable?.status === status ? '#fff' : '#64748B', textTransform: 'uppercase'}}>{status}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
               </ScrollView>
             )}
 
@@ -424,6 +640,17 @@ export default function TablesScreen() {
                 </ScrollView>
               </View>
             )}
+            
+            <View style={{padding: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9', flexDirection: 'row', gap: 12, backgroundColor: '#fff', borderBottomLeftRadius: 24, borderBottomRightRadius: 24}}>
+              <TouchableOpacity style={{flex: 1, backgroundColor: '#EADDCA', paddingVertical: 14, borderRadius: 24, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6}} onPress={handleSendToKitchen}>
+                <Text style={{fontSize: 16}}>👨‍🍳</Text>
+                <Text style={{color: '#fff', fontWeight: '900', fontSize: 10}}>SEND TO KITCHEN</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{flex: 1, backgroundColor: '#A7F3D0', paddingVertical: 14, borderRadius: 24, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6}} onPress={handleSettle}>
+                <Text style={{fontSize: 16}}>✓</Text>
+                <Text style={{color: '#fff', fontWeight: '900', fontSize: 10}}>COMPLETE BILLING</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -446,6 +673,37 @@ export default function TablesScreen() {
                 <Text style={{color: '#fff', fontWeight: '800'}}>Create Table</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Reservation Modal */}
+      <Modal visible={showAddReservationModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: 500 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Reservation</Text>
+              <TouchableOpacity onPress={() => setShowAddReservationModal(false)}><Text style={{fontSize: 24, color: '#94A3B8'}}>×</Text></TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 20 }}>
+                <Text style={styles.label}>Customer Name</Text>
+                <TextInput style={[styles.input, {marginBottom: 12}]} value={newResName} onChangeText={setNewResName} placeholder="Jane Doe" />
+                <Text style={styles.label}>Phone</Text>
+                <TextInput style={[styles.input, {marginBottom: 12}]} keyboardType="numeric" value={newResPhone} onChangeText={setNewResPhone} placeholder="9876543210" />
+                <View style={{flexDirection: 'row', gap: 12, marginBottom: 12}}>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.label}>Guests</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={newResGuests} onChangeText={setNewResGuests} placeholder="2" />
+                  </View>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.label}>Time</Text>
+                    <TextInput style={styles.input} value={newResTime} onChangeText={setNewResTime} placeholder="19:00" />
+                  </View>
+                </View>
+                <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#0F172A', marginTop: 12, marginBottom: 40}]} onPress={handleCreateReservation}>
+                  <Text style={{color: '#fff', fontWeight: '800'}}>Add Reservation</Text>
+                </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -476,8 +734,8 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   modalTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   
-  modalTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  mTab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
+  modalTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingVertical: 4 },
+  mTab: { paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center' },
   mTabActive: { borderBottomWidth: 2, borderBottomColor: '#C5A059' },
   mTabTxt: { fontSize: 12, fontWeight: '800', color: '#64748B', textTransform: 'uppercase' },
   mTabTxtActive: { color: '#C5A059' },
