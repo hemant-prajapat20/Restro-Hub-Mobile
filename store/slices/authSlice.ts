@@ -19,12 +19,10 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-const savedUser = localStorage.getItem('user');
-
 const initialState: AuthState = {
-  user: savedUser ? JSON.parse(savedUser) : null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  user: null,
+  token: null,
+  isAuthenticated: false,
 };
 
 const authSlice = createSlice({
@@ -38,15 +36,13 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
+      // TODO: Implement @react-native-async-storage/async-storage for persistence
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // TODO: Implement @react-native-async-storage/async-storage for persistence
     },
   },
 });
