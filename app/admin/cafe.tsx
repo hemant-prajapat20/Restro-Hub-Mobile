@@ -22,7 +22,8 @@ export default function CafeScreen() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const categories = ['All', 'Specialty Beans', 'Artisan Patisserie', 'Cold Brew', 'Signature Beverage'];
+  const [categories, setCategories] = useState(['All', 'Specialty Beans', 'Artisan Patisserie', 'Cold Brew', 'Signature Beverage']);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,9 +41,38 @@ export default function CafeScreen() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
 
+  // Tables & Seating
+  const [tables, setTables] = useState<any[]>([]);
+  const [targetTable, setTargetTable] = useState('');
+
+  // Discount
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+
+
+
   useEffect(() => {
     fetchItems();
+    fetchTables();
   }, []);
+
+  const fetchTables = async () => {
+    try {
+      const res = await api.get('/tables');
+      setTables(res.data);
+    } catch (e) {
+      console.log('Error fetching tables', e);
+    }
+  };
+
+  const handleAddCategory = () => {
+    if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
+      setCategories([...categories, newCategoryName.trim()]);
+      setNewCategoryName('');
+    }
+  };
+
+
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -173,8 +203,51 @@ export default function CafeScreen() {
   };
 
   const cartSubtotal = cart.reduce((sum, c) => sum + (c.item.price * c.quantity), 0);
-  const cartTax = Math.round(cartSubtotal * 0.05);
-  const cartTotal = cartSubtotal + cartTax;
+  const cartTax = Math.round((cartSubtotal - appliedDiscount) * 0.05);
+  const cartTotal = (cartSubtotal - appliedDiscount) + cartTax;
+
+  const handleApplyDiscount = () => {
+    if (discountCode === 'CAFE10') {
+      setAppliedDiscount(cartSubtotal * 0.1);
+      Alert.alert('Success', '10% Discount Applied');
+    } else {
+      Alert.alert('Invalid', 'Invalid discount code');
+      setAppliedDiscount(0);
+    }
+  };
+
+  const handleSendToTable = async () => {
+    if (cart.length === 0 || !targetTable) return;
+    try {
+      await api.post('/orders', {
+        type: 'Cafe',
+        tableId: targetTable,
+        items: cart.map(c => ({
+          menuItem: c.item.id,
+          name: c.item.name,
+          category: c.item.category,
+          quantity: c.quantity,
+          price: c.item.price,
+          status: 'Served'
+        })),
+        subtotal: cartSubtotal,
+        discount: appliedDiscount,
+        tax: cartTax,
+        total: cartTotal,
+        status: 'In Kitchen',
+        customerDetails: { name: 'Table Guest', phone: 'N/A' }
+      });
+      setCart([]);
+      setTargetTable('');
+      setDiscountCode('');
+      setAppliedDiscount(0);
+      fetchItems();
+      Alert.alert('Success', 'Sent to Table successfully!');
+      setActiveTab('display');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send to table');
+    }
+  };
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
@@ -191,6 +264,7 @@ export default function CafeScreen() {
           status: 'Completed'
         })),
         subtotal: cartSubtotal,
+        discount: appliedDiscount,
         tax: cartTax,
         total: cartTotal,
         paymentMethod,
@@ -200,6 +274,9 @@ export default function CafeScreen() {
       setCart([]);
       setCustomerName('');
       setCustomerPhone('');
+      setTargetTable('');
+      setDiscountCode('');
+      setAppliedDiscount(0);
       fetchItems();
       Alert.alert('Success', 'Checkout completed');
       setActiveTab('display');
@@ -242,7 +319,15 @@ export default function CafeScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+            <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+              <TextInput style={[styles.input, { flex: 1, padding: 8 }]} placeholder="New Category" value={newCategoryName} onChangeText={setNewCategoryName} />
+              <TouchableOpacity style={{ backgroundColor: '#1C1917', paddingHorizontal: 16, justifyContent: 'center', borderRadius: 12 }} onPress={handleAddCategory}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Add</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
+
 
           <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
             <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
@@ -271,9 +356,12 @@ export default function CafeScreen() {
                     </View>
 
                     <View style={styles.cardActions}>
-                      <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#C5A059'}]} onPress={() => addToCart(item)}>
-                        <Text style={{color: '#fff', fontSize: 10, fontWeight: '800'}}>Add to POS</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity style={[styles.actBtn, {backgroundColor: '#C5A059'}]} onPress={() => addToCart(item)}>
+                          <Text style={{color: '#fff', fontSize: 10, fontWeight: '800'}}>Add to POS</Text>
+                        </TouchableOpacity>
+
+                      </View>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item)}><Text>✏️</Text></TouchableOpacity>
                         <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item.id)}><Text>🗑️</Text></TouchableOpacity>
@@ -300,6 +388,13 @@ export default function CafeScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>{c.quantity}x {c.item.name}</Text>
                     <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '700' }}>₹{c.item.price} each</Text>
+                    {(c.milk !== 'None' || c.sweetness !== 'No Sweet' || c.notes !== '') && (
+                      <Text style={{ fontSize: 10, color: '#C5A059', fontWeight: '800', marginTop: 4 }}>
+                        {c.milk !== 'None' ? `+ ${c.milk} ` : ''} 
+                        {c.sweetness !== 'No Sweet' ? `+ ${c.sweetness} ` : ''}
+                        {c.notes ? `(${c.notes})` : ''}
+                      </Text>
+                    )}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <Text style={{ fontSize: 14, fontWeight: '900', color: '#C5A059' }}>₹{c.quantity * c.item.price}</Text>
@@ -325,28 +420,66 @@ export default function CafeScreen() {
             </View>
           </View>
 
-          <Text style={[styles.secTitle, { marginTop: 24 }]}>Customer & Payment</Text>
-          <TextInput style={[styles.input, {marginBottom: 8}]} placeholder="Customer Name (Optional)" value={customerName} onChangeText={setCustomerName} />
-          <TextInput style={[styles.input, {marginBottom: 16}]} placeholder="Phone Number (Optional)" keyboardType="numeric" value={customerPhone} onChangeText={setCustomerPhone} />
-
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
-            {['Cash', 'UPI', 'Online'].map(m => (
-              <TouchableOpacity key={m} style={[styles.payMethod, paymentMethod === m && styles.payMethodActive]} onPress={() => setPaymentMethod(m as any)}>
-                <Text style={[styles.payMethodTxt, paymentMethod === m && styles.payMethodTxtActive]}>{m}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 16 }}>
+            <TextInput style={[styles.input, {flex: 1, marginBottom: 0}]} placeholder="Discount Code (e.g. CAFE10)" value={discountCode} onChangeText={setDiscountCode} />
+            <TouchableOpacity style={{ backgroundColor: '#1C1917', paddingHorizontal: 16, justifyContent: 'center', borderRadius: 12 }} onPress={handleApplyDiscount}>
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Apply</Text>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.checkoutBtn, cart.length === 0 && { opacity: 0.5 }]} 
-            onPress={handleCheckout} 
-            disabled={cart.length === 0}
-          >
-            <Text style={styles.checkoutBtnTxt}>Complete Checkout</Text>
-          </TouchableOpacity>
+          <Text style={[styles.secTitle, { marginTop: 8 }]}>Seating / Send to Table</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            <TouchableOpacity style={[styles.catBtn, targetTable === '' && styles.catBtnActive]} onPress={() => setTargetTable('')}>
+              <Text style={[styles.catBtnTxt, targetTable === '' && styles.catBtnTxtActive]}>Takeaway / Walk-in</Text>
+            </TouchableOpacity>
+            {tables.map(t => (
+              <TouchableOpacity key={t._id} style={[styles.catBtn, targetTable === t._id && styles.catBtnActive]} onPress={() => setTargetTable(t._id)}>
+                <Text style={[styles.catBtnTxt, targetTable === t._id && styles.catBtnTxtActive]}>Table {t.number}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {targetTable !== '' ? (
+            <View>
+              <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16, textAlign: 'center' }}>
+                Items will be sent to the selected table's master bill. Payment will be handled there.
+              </Text>
+              <TouchableOpacity 
+                style={[styles.checkoutBtn, { backgroundColor: '#C5A059' }, cart.length === 0 && { opacity: 0.5 }]} 
+                onPress={handleSendToTable} 
+                disabled={cart.length === 0}
+              >
+                <Text style={styles.checkoutBtnTxt}>Send to Table</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={[styles.secTitle, { marginTop: 8 }]}>Customer & Payment</Text>
+              <TextInput style={[styles.input, {marginBottom: 8}]} placeholder="Customer Name (Optional)" value={customerName} onChangeText={setCustomerName} />
+              <TextInput style={[styles.input, {marginBottom: 16}]} placeholder="Phone Number (Optional)" keyboardType="numeric" value={customerPhone} onChangeText={setCustomerPhone} />
+
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+                {['Cash', 'UPI', 'Online'].map(m => (
+                  <TouchableOpacity key={m} style={[styles.payMethod, paymentMethod === m && styles.payMethodActive]} onPress={() => setPaymentMethod(m as any)}>
+                    <Text style={[styles.payMethodTxt, paymentMethod === m && styles.payMethodTxtActive]}>{m}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.checkoutBtn, cart.length === 0 && { opacity: 0.5 }]} 
+                onPress={handleCheckout} 
+                disabled={cart.length === 0}
+              >
+                <Text style={styles.checkoutBtnTxt}>Complete Checkout</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={{height: 100}} />
         </ScrollView>
       )}
+
+
 
       {/* Add/Edit Modal */}
       <Modal visible={isModalOpen} transparent animationType="slide">

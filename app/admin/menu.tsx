@@ -248,17 +248,19 @@ export default function MenuScreen() {
                     <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.itemCat}>{item.category}</Text>
                   </View>
-                  <Text style={styles.itemPrice}>₹{item.price}</Text>
                 </View>
                 <Text style={styles.itemDesc} numberOfLines={2}>{item.description}</Text>
                 
                 <View style={styles.cardActions}>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item)}>
-                    <Text style={{fontSize: 16}}>✏️</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item._id)}>
-                    <Text style={{fontSize: 16}}>🗑️</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.itemPrice}>₹{item.price}</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item)}>
+                      <Text style={{fontSize: 16}}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item._id)}>
+                      <Text style={{fontSize: 16}}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
   itemPrice: { fontSize: 16, fontWeight: '900', color: '#C5A059' },
   itemDesc: { fontSize: 10, color: '#64748B', marginTop: 6, height: 28 },
   
-  cardActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  cardActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   iconBtn: { padding: 4 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
