@@ -1,23 +1,35 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Animated,
   Dimensions,
   Modal,
   StatusBar,
   Platform,
+  TextInput,
+  Image,
+  FlatList,
+  Vibration,
+  Alert,
 } from 'react-native';
 import { useRouter, usePathname, Slot } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { RootState } from '../../store';
+import api from '../../utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.78;
+
+// ──────────────────────────────────────────────
+// Notification Alert Helper (vibration)
+// ──────────────────────────────────────────────
+const playNotificationAlert = () => {
+  Vibration.vibrate([0, 200, 100, 200]); // pattern: pause, buzz, pause, buzz
+};
 
 // ──────────────────────────────────────────────
 // Navigation items — exactly matching the web
@@ -44,6 +56,19 @@ const bottomItems = [
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
+// Category icon mapping for notifications (same as web)
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'order': return '🛍️';
+    case 'payment': return '💳';
+    case 'inventory': return '📦';
+    case 'reservation': return '📅';
+    case 'staff': return '👥';
+    case 'system': return '⚙️';
+    default: return '🔔';
+  }
+};
+
 // ──────────────────────────────────────────────
 // Sidebar Component
 // ──────────────────────────────────────────────
@@ -61,7 +86,6 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const userPlatforms = user?.businessData?.platforms || [];
   const toggles = user?.businessData?.featureToggles || {};
 
-  // Filter nav items based on user's purchased platforms & feature toggles
   const filteredNavItems = businessNavItems.filter(item => {
     if (item.platform && !userPlatforms.includes(item.platform)) return false;
     if (item.id === 'restro' && toggles.restaurant === false) return false;
@@ -159,10 +183,202 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
               );
             })}
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
-              <Text style={styles.logoutIcon}>🚪</Text>
+              <Text style={styles.logoutIconText}>🚪</Text>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ──────────────────────────────────────────────
+// Notification Dropdown Component
+// ──────────────────────────────────────────────
+interface NotificationDropdownProps {
+  visible: boolean;
+  onClose: () => void;
+  notifications: any[];
+  onMarkAllRead: () => void;
+  onMarkOneRead: (id: string) => void;
+}
+
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
+  visible, onClose, notifications, onMarkAllRead, onMarkOneRead,
+}) => {
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const router = useRouter();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.notifOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.notifDropdown}>
+          {/* Header */}
+          <View style={styles.notifHeader}>
+            <Text style={styles.notifHeaderTitle}>Notifications</Text>
+            {unreadCount > 0 && (
+              <TouchableOpacity onPress={onMarkAllRead}>
+                <Text style={styles.notifMarkAll}>Mark all read</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* List */}
+          {notifications.length === 0 ? (
+            <View style={styles.notifEmpty}>
+              <Text style={styles.notifEmptyText}>No new notifications</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={notifications.slice(0, 20)}
+              keyExtractor={(item, i) => item._id || String(i)}
+              style={{ maxHeight: 320 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.notifItem, !item.isRead && styles.notifItemUnread]}
+                  onPress={() => {
+                    if (!item.isRead) onMarkOneRead(item._id);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.notifItemIcon}>{getCategoryIcon(item.category)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.notifItemMsg, !item.isRead && styles.notifItemMsgBold]}>
+                      {item.message}
+                    </Text>
+                    <Text style={styles.notifItemTime}>
+                      {new Date(item.createdAt).toLocaleString()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+
+          {/* Footer */}
+          <TouchableOpacity
+            style={styles.notifFooter}
+            onPress={() => {
+              onClose();
+              router.push('/admin/messages' as any);
+            }}
+          >
+            <Text style={styles.notifFooterText}>View Message Center</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
+// ──────────────────────────────────────────────
+// Search Modal Component
+// ──────────────────────────────────────────────
+interface SearchModalProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSearch = useCallback(async (text: string) => {
+    setQuery(text);
+    if (text.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      // Search menu items
+      const menuRes = await api.get(`/menu?search=${encodeURIComponent(text)}`);
+      const menuItems = (menuRes.data?.data || []).map((item: any) => ({
+        ...item,
+        _type: 'menu',
+      }));
+
+      // Search customers
+      const custRes = await api.get(`/customers?search=${encodeURIComponent(text)}`);
+      const customers = (custRes.data?.data || []).map((item: any) => ({
+        ...item,
+        _type: 'customer',
+      }));
+
+      setResults([...menuItems.slice(0, 5), ...customers.slice(0, 5)]);
+    } catch (err) {
+      console.log('Search error:', err);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'menu': return '🍽️';
+      case 'customer': return '👤';
+      default: return '🔍';
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.searchModalOverlay}>
+        <View style={styles.searchModalContent}>
+          {/* Search Input */}
+          <View style={styles.searchModalHeader}>
+            <View style={styles.searchModalInputRow}>
+              <Text style={styles.searchModalIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchModalInput}
+                placeholder="Search orders, menu items, customers..."
+                placeholderTextColor="#94A3B8"
+                value={query}
+                onChangeText={handleSearch}
+                autoFocus
+                returnKeyType="search"
+              />
+              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); onClose(); }}>
+                <Text style={styles.searchModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Results */}
+          {loading ? (
+            <View style={styles.searchLoading}>
+              <Text style={styles.searchLoadingText}>Searching...</Text>
+            </View>
+          ) : results.length > 0 ? (
+            <FlatList
+              data={results}
+              keyExtractor={(item, i) => item._id || String(i)}
+              style={{ maxHeight: 400 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.searchResultItem} activeOpacity={0.7}>
+                  <Text style={styles.searchResultIcon}>{getTypeIcon(item._type)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.searchResultName}>
+                      {item.name || item.firstName && `${item.firstName} ${item.lastName}` || 'Unknown'}
+                    </Text>
+                    <Text style={styles.searchResultSub}>
+                      {item._type === 'menu'
+                        ? `₹${item.price || 0} · ${item.category || 'Menu Item'}`
+                        : item.email || item.phone || 'Customer'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          ) : query.length >= 2 ? (
+            <View style={styles.searchLoading}>
+              <Text style={styles.searchLoadingText}>No results found</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -178,9 +394,68 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest';
-  const roleDisplay = user ? user.role.replace('_', ' ') : 'Admin';
   const initials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : 'G';
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Fetch notifications on mount (same logic as web Header)
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get('/messages');
+        if (res.data.status === 'success') {
+          setNotifications(res.data.data);
+        }
+      } catch (err) {
+        console.log('Failed to load notifications', err);
+      }
+    };
+    fetchNotifications();
+
+    // Poll every 30 seconds for new notifications (mobile-safe alternative to socket.io)
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get('/messages');
+        if (res.data.status === 'success') {
+          const newData = res.data.data;
+          // Check for new unread messages
+          const prevUnread = notifications.filter(n => !n.isRead).length;
+          const newUnread = newData.filter((n: any) => !n.isRead).length;
+          if (newUnread > prevUnread) {
+            playNotificationAlert();
+            Vibration.vibrate(300);
+          }
+          setNotifications(newData);
+        }
+      } catch (err) {
+        // Silently fail for polling
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const markAllRead = async () => {
+    try {
+      await api.put('/messages/read');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markOneRead = async (notifId: string) => {
+    setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, isRead: true } : n));
+    try {
+      await api.put('/messages/read', { messageId: notifId });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <View style={styles.header}>
@@ -189,24 +464,58 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
         <Text style={styles.hamburgerIcon}>☰</Text>
       </TouchableOpacity>
 
-      {/* Search placeholder */}
-      <View style={styles.searchBar}>
+      {/* Search bar — opens search modal on tap */}
+      <TouchableOpacity style={styles.searchBar} activeOpacity={0.7} onPress={() => setShowSearch(true)}>
         <Text style={styles.searchIcon}>🔍</Text>
         <Text style={styles.searchPlaceholder}>Search orders, menu...</Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Right side: bell + avatar */}
       <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.bellBtn}>
+        {/* Bell with notification badge */}
+        <TouchableOpacity
+          style={styles.bellBtn}
+          onPress={() => setShowNotifications(true)}
+        >
           <Text style={styles.bellIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.bellBadge}>
+              <Text style={styles.bellBadgeText}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
+        {/* Profile avatar with actual image */}
         <View style={styles.avatar}>
+          {user?.profilePhoto ? (
+            <Image
+              source={{ uri: user.profilePhoto }}
+              style={styles.avatarImage}
+            />
+          ) : (
             <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          )}
+        </View>
       </View>
+
+      {/* Notification Dropdown */}
+      <NotificationDropdown
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        onMarkAllRead={markAllRead}
+        onMarkOneRead={markOneRead}
+      />
+
+      {/* Search Modal */}
+      <SearchModal
+        visible={showSearch}
+        onClose={() => setShowSearch(false)}
+      />
     </View>
   );
 };
@@ -288,61 +597,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 4,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#10B981',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
   bellBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   bellIcon: {
     fontSize: 18,
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   divider: {
     width: 1,
     height: 28,
     backgroundColor: '#E2E8F0',
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  profileInfo: {
-    alignItems: 'flex-end',
-    maxWidth: 100,
-  },
-  profileName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  profileRole: {
-    fontSize: 10,
-    color: '#64748B',
-    textTransform: 'capitalize',
   },
   avatar: {
     width: 36,
@@ -353,10 +641,16 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   avatarText: {
     fontSize: 13,
@@ -494,7 +788,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 4,
   },
-  logoutIcon: {
+  logoutIconText: {
     fontSize: 18,
     width: 24,
     textAlign: 'center',
@@ -503,5 +797,165 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#EF4444',
+  },
+
+  // ── Notification Dropdown ──
+  notifOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 58 : 100,
+    paddingHorizontal: 12,
+  },
+  notifDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
+  },
+  notifHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  notifMarkAll: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  notifEmpty: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  notifEmptyText: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  notifItem: {
+    flexDirection: 'row',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  notifItemUnread: {
+    backgroundColor: '#FFFBEB',
+  },
+  notifItemIcon: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  notifItemMsg: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  notifItemMsgBold: {
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  notifItemTime: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  notifFooter: {
+    padding: 12,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  notifFooterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+
+  // ── Search Modal ──
+  searchModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.6)',
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 10 : 60,
+  },
+  searchModalContent: {
+    marginHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  searchModalHeader: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  searchModalInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  searchModalIcon: {
+    fontSize: 16,
+  },
+  searchModalInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  searchModalClose: {
+    fontSize: 18,
+    color: '#94A3B8',
+    fontWeight: '600',
+    padding: 4,
+  },
+  searchLoading: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  searchLoadingText: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    gap: 12,
+    alignItems: 'center',
+  },
+  searchResultIcon: {
+    fontSize: 20,
+  },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  searchResultSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
 });
