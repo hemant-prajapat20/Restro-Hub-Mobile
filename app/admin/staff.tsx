@@ -56,6 +56,7 @@ export default function StaffScreen() {
 
   // Form
   const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState<'Male'|'Female'>('Male');
   const [newRole, setNewRole] = useState('');
   const [newShift, setNewShift] = useState('General (10 AM - 7 PM)');
   const [newSalary, setNewSalary] = useState('');
@@ -136,8 +137,12 @@ export default function StaffScreen() {
         finalImageUrl = uploadRes.data.url;
       }
 
-      const seedName = `Felix-${newName}`;
-      const fallbackImage = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seedName}&hair=shortHairShortFlat,shortHairShortRound,shortHairFrizzle&facialHairProbability=20&clothing=hoodie,shirtCrewNeck`;
+      const isFemale = newGender === 'Female';
+      const seedName = isFemale ? `Sophia-${newName}` : `Felix-${newName}`;
+      const avatarParams = isFemale 
+        ? `&hair=longHairStraight,longHairCurly,longHairMiaWallace&clothing=blazerAndSweater,collarAndSweater`
+        : `&hair=shortHairShortFlat,shortHairShortRound,shortHairFrizzle&facialHairProbability=20&clothing=hoodie,shirtCrewNeck`;
+      const fallbackImage = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seedName}${avatarParams}`;
 
       const payload = {
         name: newName,
@@ -183,6 +188,7 @@ export default function StaffScreen() {
   const resetForm = () => {
     setEditingStaffId(null);
     setNewName('');
+    setNewGender('Male');
     setNewRole(categories[0] || 'Staff');
     setNewShift('General (10 AM - 7 PM)');
     setNewSalary('');
@@ -196,6 +202,7 @@ export default function StaffScreen() {
   const openEdit = (staff: StaffMember) => {
     setEditingStaffId(staff._id);
     setNewName(staff.name);
+    setNewGender('Male'); // Default fallback as web does
     setNewRole(staff.role);
     setNewShift(staff.shift);
     setNewSalary(String(staff.salary));
@@ -327,7 +334,7 @@ export default function StaffScreen() {
               <Text style={styles.modalTitle}>{editingStaffId ? 'Edit Staff' : 'Add New Staff'}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}><Text style={{ fontSize: 24, color: '#94A3B8' }}>×</Text></TouchableOpacity>
             </View>
-            <ScrollView style={styles.formScroll}>
+            <ScrollView style={styles.formScroll} contentContainerStyle={{ paddingBottom: 80 }}>
               <View style={styles.imagePickerRow}>
                 <View style={styles.imgPreviewBox}>
                   {uploadedImageUri ? (
@@ -346,21 +353,49 @@ export default function StaffScreen() {
               <Text style={styles.label}>Full Name *</Text>
               <TextInput style={styles.input} placeholder="John Doe" value={newName} onChangeText={setNewName} />
 
+              <Text style={styles.label}>Gender</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {['Male', 'Female'].map(g => (
+                  <TouchableOpacity key={g} style={[styles.tabBtn, newGender === g && styles.tabBtnActive]} onPress={() => setNewGender(g as any)}>
+                    <Text style={[styles.tabLabel, newGender === g && styles.tabLabelActive]}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Role *</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                {categories.map(cat => (
+                  <TouchableOpacity key={cat} style={[styles.tabBtn, newRole === cat && styles.tabBtnActive, { marginRight: 8 }]} onPress={() => setNewRole(cat)}>
+                    <Text style={[styles.tabLabel, newRole === cat && styles.tabLabelActive]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={styles.label}>Assigned Shift *</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                {['General (10 AM - 7 PM)', 'Morning (6 AM - 2 PM)', 'Evening (2 PM - 10 PM)', 'Night (10 PM - 6 AM)'].map(shift => (
+                  <TouchableOpacity key={shift} style={[styles.tabBtn, newShift === shift && styles.tabBtnActive, { marginRight: 8 }]} onPress={() => setNewShift(shift)}>
+                    <Text style={[styles.tabLabel, newShift === shift && styles.tabLabelActive]}>{shift}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Salary (₹) *</Text>
+                  <TextInput style={styles.input} placeholder="85000" keyboardType="numeric" value={newSalary} onChangeText={setNewSalary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Score (0-5)</Text>
+                  <TextInput style={styles.input} placeholder="5.0" keyboardType="numeric" value={newScore} onChangeText={setNewScore} />
+                </View>
+              </View>
+
               <Text style={styles.label}>Phone Number *</Text>
               <TextInput style={styles.input} placeholder="9876543210" keyboardType="phone-pad" value={newContact} onChangeText={setNewContact} />
 
-              <Text style={styles.label}>Salary (₹) *</Text>
-              <TextInput style={styles.input} placeholder="25000" keyboardType="number-pad" value={newSalary} onChangeText={setNewSalary} />
-
               <Text style={styles.label}>Email (Optional)</Text>
               <TextInput style={styles.input} placeholder="john@example.com" keyboardType="email-address" autoCapitalize="none" value={newEmail} onChangeText={setNewEmail} />
-
-              {/* Just text inputs for Role/Shift to save time, ideally they are pickers */}
-              <Text style={styles.label}>Role</Text>
-              <TextInput style={styles.input} placeholder="e.g. Manager" value={newRole} onChangeText={setNewRole} />
-
-              <Text style={styles.label}>Shift</Text>
-              <TextInput style={styles.input} placeholder="Morning (6 AM - 2 PM)" value={newShift} onChangeText={setNewShift} />
 
             </ScrollView>
             <View style={styles.modalFooter}>
