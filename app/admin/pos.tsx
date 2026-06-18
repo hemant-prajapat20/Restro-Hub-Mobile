@@ -8,8 +8,6 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
-  Modal,
-  Platform,
   Alert,
 } from 'react-native';
 import api from '../../utils/api';
@@ -22,8 +20,7 @@ export default function POSScreen() {
   const [loading, setLoading] = useState(true);
   
   const [cart, setCart] = useState<any[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'checkout'>('menu');
   
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -114,10 +111,7 @@ export default function POSScreen() {
       Alert.alert('Error', 'Please fill all customer details and select a payment method.');
       return;
     }
-    
-    // Simulate payment delay for Razorpay/External
     setOrderState('sending');
-    
     try {
       await api.post('/orders', {
         type: 'POS',
@@ -149,8 +143,7 @@ export default function POSScreen() {
   const handleResetOrder = () => {
     setCart([]);
     setOrderState('idle');
-    setIsCartOpen(false);
-    setIsCheckoutOpen(false);
+    setActiveTab('menu');
     setPaymentMethod(null);
     setCustomerName('');
     setCustomerPhone('');
@@ -166,193 +159,221 @@ export default function POSScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Filter & Search Bar ── */}
-      <View style={styles.topBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search menu..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-          {categories.map((cat, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.categoryBadge, activeCategory === cat && styles.categoryBadgeActive]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              <Text style={[styles.categoryText, activeCategory === cat && styles.categoryTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* ── Top Tabs ── */}
+      <View style={styles.tabHeader}>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'menu' && styles.tabBtnActive]} 
+          onPress={() => setActiveTab('menu')}
+        >
+          <Text style={[styles.tabText, activeTab === 'menu' && styles.tabTextActive]}>Menu</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'cart' && styles.tabBtnActive]} 
+          onPress={() => setActiveTab('cart')}
+        >
+          <Text style={[styles.tabText, activeTab === 'cart' && styles.tabTextActive]}>
+            Current Order ({cart.length})
+          </Text>
+        </TouchableOpacity>
+        {activeTab === 'checkout' && (
+          <TouchableOpacity style={[styles.tabBtn, styles.tabBtnActive]}>
+             <Text style={[styles.tabText, styles.tabTextActive]}>Checkout</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* ── Menu Grid ── */}
-      <ScrollView contentContainerStyle={styles.menuGrid}>
-        <View style={styles.gridContainer}>
-          {filteredItems.map((item, i) => (
-            <TouchableOpacity 
-              key={i} 
-              style={styles.menuItemCard}
-              onPress={() => addToCart(item)}
-              activeOpacity={0.8}
-            >
-              <Image source={{ uri: item.image }} style={styles.menuItemImage} />
-              <View style={[styles.vegBadge, { backgroundColor: item.isVeg ? '#10B981' : '#EF4444' }]}>
-                <Text style={styles.vegText}>{item.isVeg ? 'VEG' : 'NON-VEG'}</Text>
-              </View>
-              <View style={styles.menuItemInfo}>
-                <Text style={styles.menuItemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.menuItemDesc} numberOfLines={1}>{item.description}</Text>
-                <View style={styles.menuItemRow}>
-                  <Text style={styles.menuItemPrice}>₹{item.price}</Text>
-                  <View style={styles.addButton}>
-                    <Text style={styles.addButtonText}>+</Text>
+      {/* ── Menu Tab ── */}
+      {activeTab === 'menu' && (
+        <View style={{ flex: 1 }}>
+          <View style={styles.filterBar}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search menu..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+              {categories.map((cat, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.categoryBadge, activeCategory === cat && styles.categoryBadgeActive]}
+                  onPress={() => setActiveCategory(cat)}
+                >
+                  <Text style={[styles.categoryText, activeCategory === cat && styles.categoryTextActive]}>
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.menuGrid}>
+            <View style={styles.gridContainer}>
+              {filteredItems.map((item, i) => (
+                <TouchableOpacity 
+                  key={i} 
+                  style={styles.menuItemCard}
+                  onPress={() => addToCart(item)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.imageContainer}>
+                    <Image source={{ uri: item.image }} style={styles.menuItemImage} />
+                    <View style={[styles.vegBadge, { backgroundColor: item.isVeg ? '#10B981' : '#EF4444' }]}>
+                      <Text style={styles.vegText}>{item.isVeg ? 'VEG' : 'NON-VEG'}</Text>
+                    </View>
                   </View>
-                </View>
+                  <View style={styles.menuItemInfo}>
+                    <Text style={styles.menuItemName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.menuItemDesc} numberOfLines={1}>{item.description}</Text>
+                    <View style={styles.menuItemRow}>
+                      <Text style={styles.menuItemPrice}>₹{item.price}</Text>
+                      <View style={styles.addButton}>
+                        <Text style={styles.addButtonText}>+</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          {cart.length > 0 && (
+            <TouchableOpacity style={styles.bottomSummary} onPress={() => setActiveTab('cart')}>
+              <View>
+                <Text style={styles.bottomSummaryText}>{cart.length} Items</Text>
+                <Text style={styles.bottomSummarySub}>View Cart</Text>
               </View>
+              <Text style={styles.bottomSummaryTotal}>₹{total.toFixed(2)}</Text>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
-      </ScrollView>
+      )}
 
-      {/* ── Bottom Cart Summary Bar ── */}
-      {cart.length > 0 && !isCartOpen && !isCheckoutOpen ? (
-        <TouchableOpacity style={styles.bottomSummary} onPress={() => setIsCartOpen(true)}>
-          <View>
-            <Text style={styles.bottomSummaryText}>{cart.length} Items</Text>
-            <Text style={styles.bottomSummarySub}>View Cart</Text>
-          </View>
-          <Text style={styles.bottomSummaryTotal}>₹{total.toFixed(2)}</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {/* ── Cart Modal ── */}
-      <Modal visible={isCartOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIsCartOpen(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Current Order ({cart.length})</Text>
-            <TouchableOpacity onPress={() => setIsCartOpen(false)}>
-              <Text style={styles.closeBtn}>Close</Text>
-            </TouchableOpacity>
-          </View>
-
+      {/* ── Cart Tab ── */}
+      {activeTab === 'cart' && (
+        <View style={{ flex: 1 }}>
           <ScrollView style={styles.cartList}>
-            {cart.map((item, i) => (
-              <View key={i} style={styles.cartItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cartItemName}>{item.name}</Text>
-                  <Text style={styles.cartItemPrice}>₹{item.price} each</Text>
-                </View>
-                <View style={styles.qtyControl}>
-                  <TouchableOpacity onPress={() => removeFromCart(item.itemId)} style={styles.qtyBtn}>
-                    <Text style={styles.qtyBtnText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyText}>{item.quantity}</Text>
-                  <TouchableOpacity onPress={() => addToCart({ id: item.itemId })} style={styles.qtyBtn}>
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.cartItemTotal}>₹{item.price * item.quantity}</Text>
+            {cart.length === 0 ? (
+              <View style={styles.emptyCartBox}>
+                <Text style={styles.emptyCartTitle}>Your cart is empty.</Text>
+                <Text style={styles.emptyCartSub}>Start adding items from the menu to create an order.</Text>
               </View>
-            ))}
+            ) : (
+              cart.map((item, i) => (
+                <View key={i} style={styles.cartItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cartItemName}>{item.name}</Text>
+                    <Text style={styles.cartItemPrice}>₹{item.price} each</Text>
+                  </View>
+                  <View style={styles.qtyControl}>
+                    <TouchableOpacity onPress={() => removeFromCart(item.itemId)} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.qtyText}>{item.quantity}</Text>
+                    <TouchableOpacity onPress={() => addToCart({ id: item.itemId })} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.cartItemTotal}>₹{(item.price * item.quantity).toFixed(2)}</Text>
+                </View>
+              ))
+            )}
           </ScrollView>
 
           <View style={styles.cartFooter}>
             <View style={styles.cartTotalsRow}>
               <Text style={styles.cartTotalsText}>Subtotal</Text>
-              <Text style={styles.cartTotalsText}>₹{subTotal}</Text>
+              <Text style={styles.cartTotalsValue}>₹{subTotal.toFixed(2)}</Text>
             </View>
             <View style={styles.cartTotalsRow}>
-              <Text style={styles.cartTotalsText}>Total Due</Text>
+              <Text style={styles.cartTotalsHighlight}>KDS Sync Fee</Text>
+              <Text style={styles.cartTotalsHighlight}>Incl.</Text>
+            </View>
+            <View style={[styles.cartTotalsRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12, marginTop: 4 }]}>
+              <Text style={styles.cartGrandTotalLabel}>Total Due</Text>
               <Text style={styles.cartGrandTotal}>₹{total.toFixed(2)}</Text>
             </View>
 
             <View style={styles.cartActions}>
               <TouchableOpacity 
-                style={[styles.kotBtn, orderState !== 'idle' && { opacity: 0.5 }]}
+                style={[styles.kotBtn, (cart.length === 0 || orderState !== 'idle') && { opacity: 0.5 }]}
                 onPress={handleSendToKitchen}
-                disabled={orderState !== 'idle'}
+                disabled={cart.length === 0 || orderState !== 'idle'}
               >
                 <Text style={styles.kotBtnText}>
-                  {orderState === 'sending' ? 'Sending...' : 'KOT'}
+                  {orderState === 'sending' ? 'SENDING...' : 'KOT'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.payBtn}
-                onPress={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}
+                style={[styles.payBtn, cart.length === 0 && { opacity: 0.5 }]}
+                onPress={() => setActiveTab('checkout')}
+                disabled={cart.length === 0}
               >
                 <Text style={styles.payBtnText}>PAY BILL</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      </Modal>
+      )}
 
-      {/* ── Checkout Modal ── */}
-      <Modal visible={isCheckoutOpen} animationType="fade" transparent={true}>
-        <View style={styles.checkoutOverlay}>
+      {/* ── Checkout Tab ── */}
+      {activeTab === 'checkout' && (
+        <ScrollView style={{ flex: 1, padding: 16 }}>
           <View style={styles.checkoutCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Complete Payment</Text>
-              <TouchableOpacity onPress={() => setIsCheckoutOpen(false)}>
-                <Text style={styles.closeBtn}>X</Text>
-              </TouchableOpacity>
+            <Text style={styles.checkoutLabel}>Customer Details (Required)</Text>
+            <TextInput
+              style={styles.checkoutInput}
+              placeholder="Customer Name"
+              placeholderTextColor="#94A3B8"
+              value={customerName}
+              onChangeText={setCustomerName}
+            />
+            <TextInput
+              style={[styles.checkoutInput, customerPhone.length > 0 && customerPhone.length !== 10 && styles.inputError]}
+              placeholder="Mobile Number (10 digits)"
+              placeholderTextColor="#94A3B8"
+              keyboardType="numeric"
+              maxLength={10}
+              value={customerPhone}
+              onChangeText={(val) => setCustomerPhone(val.replace(/[^0-9]/g, ''))}
+            />
+            {customerPhone.length > 0 && customerPhone.length !== 10 && (
+              <Text style={styles.errorText}>Must be exactly 10 digits</Text>
+            )}
+
+            <Text style={[styles.checkoutLabel, { marginTop: 16 }]}>Payment Method</Text>
+            <View style={styles.paymentMethodsRow}>
+              {['Cash', 'UPI', 'Card', 'Wallet'].map(method => (
+                <TouchableOpacity 
+                  key={method}
+                  style={[styles.paymentMethodBtn, paymentMethod === method && styles.paymentMethodBtnActive]}
+                  onPress={() => setPaymentMethod(method)}
+                >
+                  <Text style={[styles.paymentMethodText, paymentMethod === method && styles.paymentMethodTextActive]}>
+                    {method}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
-            <View style={styles.checkoutBody}>
-              <Text style={styles.checkoutLabel}>Customer Details (Required)</Text>
-              <TextInput
-                style={styles.checkoutInput}
-                placeholder="Customer Name"
-                value={customerName}
-                onChangeText={setCustomerName}
-              />
-              <TextInput
-                style={[styles.checkoutInput, customerPhone.length > 0 && customerPhone.length !== 10 && styles.inputError]}
-                placeholder="Mobile Number (10 digits)"
-                keyboardType="numeric"
-                maxLength={10}
-                value={customerPhone}
-                onChangeText={(val) => setCustomerPhone(val.replace(/[^0-9]/g, ''))}
-              />
-
-              <Text style={styles.checkoutLabel}>Payment Method</Text>
-              <View style={styles.paymentMethodsRow}>
-                {['Cash', 'UPI', 'Card', 'Wallet'].map(method => (
-                  <TouchableOpacity 
-                    key={method}
-                    style={[styles.paymentMethodBtn, paymentMethod === method && styles.paymentMethodBtnActive]}
-                    onPress={() => setPaymentMethod(method)}
-                  >
-                    <Text style={[styles.paymentMethodText, paymentMethod === method && styles.paymentMethodTextActive]}>
-                      {method}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.checkoutSummary}>
-                <Text style={styles.cartTotalsText}>Grand Total</Text>
-                <Text style={styles.cartGrandTotal}>₹{total.toFixed(2)}</Text>
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.completePayBtn, (!paymentMethod || !customerName || customerPhone.length !== 10) && styles.disabledBtn]}
-                onPress={handleProcessPayment}
-                disabled={!paymentMethod || !customerName || customerPhone.length !== 10 || orderState === 'sending'}
-              >
-                <Text style={styles.payBtnText}>
-                  {orderState === 'sending' ? 'Processing...' : 'COMPLETE PAYMENT'}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.checkoutSummary}>
+              <Text style={styles.checkoutSummaryLabel}>Grand Total</Text>
+              <Text style={styles.checkoutSummaryValue}>₹{total.toFixed(2)}</Text>
             </View>
+
+            <TouchableOpacity 
+              style={[styles.completePayBtn, (!paymentMethod || !customerName || customerPhone.length !== 10 || orderState === 'sending') && styles.disabledBtn]}
+              onPress={handleProcessPayment}
+              disabled={!paymentMethod || !customerName || customerPhone.length !== 10 || orderState === 'sending'}
+            >
+              <Text style={styles.completePayBtnText}>
+                {orderState === 'sending' ? 'PROCESSING...' : 'COMPLETE PAYMENT'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -361,70 +382,80 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  topBar: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  searchInput: { backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, marginBottom: 12, fontSize: 14 },
+  tabHeader: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  tabBtn: { flex: 1, paddingVertical: 16, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabBtnActive: { borderBottomColor: '#6366F1' },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  tabTextActive: { color: '#6366F1', fontWeight: '700' },
+
+  filterBar: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  searchInput: { backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, marginBottom: 12, fontSize: 14, color: '#0F172A', fontWeight: '500' },
   categoryScroll: { flexDirection: 'row' },
   categoryBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8 },
   categoryBadgeActive: { backgroundColor: '#6366F1' },
   categoryText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
   categoryTextActive: { color: '#fff' },
 
-  menuGrid: { padding: 8 },
+  menuGrid: { padding: 12 },
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   menuItemCard: { width: '48%', backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' },
-  menuItemImage: { width: '100%', height: 120, resizeMode: 'cover' },
+  imageContainer: { position: 'relative', width: '100%', height: 120 },
+  menuItemImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   vegBadge: { position: 'absolute', top: 8, right: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  vegText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
+  vegText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   menuItemInfo: { padding: 12 },
   menuItemName: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 4 },
   menuItemDesc: { fontSize: 11, color: '#64748B', marginBottom: 8 },
   menuItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   menuItemPrice: { fontSize: 15, fontWeight: '700', color: '#6366F1' },
   addButton: { backgroundColor: '#F1F5F9', width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  addButtonText: { fontSize: 18, color: '#64748B', fontWeight: 'bold' },
+  addButtonText: { fontSize: 16, color: '#64748B', fontWeight: '800' },
 
   bottomSummary: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: '#0F172A', borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 },
   bottomSummaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   bottomSummarySub: { color: '#94A3B8', fontSize: 12 },
   bottomSummaryTotal: { color: '#10B981', fontSize: 20, fontWeight: '800' },
 
-  modalContainer: { flex: 1, backgroundColor: '#F8FAFC' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  closeBtn: { fontSize: 14, fontWeight: '600', color: '#EF4444' },
-  
   cartList: { flex: 1, padding: 16 },
-  cartItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  cartItemName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  cartItemPrice: { fontSize: 12, color: '#64748B' },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 8, marginHorizontal: 12 },
-  qtyBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  qtyBtnText: { fontSize: 16, fontWeight: '600', color: '#64748B' },
-  qtyText: { fontSize: 14, fontWeight: '700', width: 24, textAlign: 'center' },
-  cartItemTotal: { fontSize: 14, fontWeight: '700', color: '#0F172A', width: 60, textAlign: 'right' },
+  emptyCartBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, backgroundColor: '#F1F5F9', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' },
+  emptyCartTitle: { fontSize: 16, fontWeight: '600', color: '#64748B', marginBottom: 4 },
+  emptyCartSub: { fontSize: 12, color: '#94A3B8', textAlign: 'center', paddingHorizontal: 20 },
+  cartItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  cartItemName: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
+  cartItemPrice: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 8, marginHorizontal: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  qtyBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  qtyBtnText: { fontSize: 16, fontWeight: '700', color: '#64748B' },
+  qtyText: { fontSize: 14, fontWeight: '800', width: 24, textAlign: 'center', color: '#0F172A' },
+  cartItemTotal: { fontSize: 15, fontWeight: '800', color: '#0F172A', width: 70, textAlign: 'right' },
 
   cartFooter: { backgroundColor: '#fff', padding: 20, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  cartTotalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  cartTotalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   cartTotalsText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  cartGrandTotal: { fontSize: 20, fontWeight: '800', color: '#6366F1' },
+  cartTotalsValue: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  cartTotalsHighlight: { fontSize: 14, fontWeight: '700', color: '#6366F1' },
+  cartGrandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  cartGrandTotal: { fontSize: 24, fontWeight: '800', color: '#6366F1' },
   cartActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  kotBtn: { flex: 1, paddingVertical: 16, borderRadius: 12, borderWidth: 2, borderColor: '#6366F1', alignItems: 'center' },
-  kotBtnText: { color: '#6366F1', fontSize: 16, fontWeight: '700' },
-  payBtn: { flex: 2, backgroundColor: '#6366F1', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  payBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  kotBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 2, borderColor: '#6366F1', alignItems: 'center', justifyContent: 'center' },
+  kotBtnText: { color: '#6366F1', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  payBtn: { flex: 2, backgroundColor: '#6366F1', paddingVertical: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#6366F1', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  payBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
 
-  checkoutOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
-  checkoutCard: { backgroundColor: '#fff', borderRadius: 24, overflow: 'hidden' },
-  checkoutBody: { padding: 20 },
-  checkoutLabel: { fontSize: 12, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 },
-  checkoutInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', padding: 16, borderRadius: 12, marginBottom: 16, fontSize: 14 },
-  inputError: { borderColor: '#EF4444' },
-  paymentMethodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  paymentMethodBtn: { flex: 1, minWidth: '45%', paddingVertical: 16, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, alignItems: 'center' },
-  paymentMethodBtnActive: { borderColor: '#6366F1', backgroundColor: '#EEF2FF' },
-  paymentMethodText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  checkoutCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#E2E8F0' },
+  checkoutLabel: { fontSize: 12, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  checkoutInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', padding: 16, borderRadius: 16, marginBottom: 16, fontSize: 15, fontWeight: '600', color: '#0F172A' },
+  inputError: { borderColor: '#EF4444', backgroundColor: '#FEF2F2' },
+  errorText: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: -10, marginBottom: 16, marginLeft: 4 },
+  paymentMethodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+  paymentMethodBtn: { flex: 1, minWidth: '45%', paddingVertical: 16, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, alignItems: 'center', backgroundColor: '#F8FAFC' },
+  paymentMethodBtnActive: { borderColor: '#6366F1', backgroundColor: '#EEF2FF', borderWidth: 2 },
+  paymentMethodText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
   paymentMethodTextActive: { color: '#6366F1' },
-  checkoutSummary: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  completePayBtn: { backgroundColor: '#10B981', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  checkoutSummary: { backgroundColor: '#F8FAFC', padding: 20, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#E2E8F0' },
+  checkoutSummaryLabel: { fontSize: 14, fontWeight: '600', color: '#64748B' },
+  checkoutSummaryValue: { fontSize: 24, fontWeight: '800', color: '#6366F1' },
+  completePayBtn: { backgroundColor: '#10B981', paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#10B981', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   disabledBtn: { opacity: 0.5 },
+  completePayBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
 });
