@@ -201,7 +201,7 @@ export default function AdminDashboard() {
             <Text style={{ fontSize: 10, fontWeight: '700', color: '#6366F1', textTransform: 'uppercase', letterSpacing: 1 }}>View All</Text>
           </TouchableOpacity>
         </View>
-        
+
         {staff.length > 0 ? (
           staff.map((member: any, i: number) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
             data={categoryData.slice(0, 5).map((c: any) => ({
               name: c.name,
               population: c.value,
-              color: c.color || '#' + Math.floor(Math.random()*16777215).toString(16),
+              color: c.color || '#' + Math.floor(Math.random() * 16777215).toString(16),
               legendFontColor: '#64748B',
               legendFontSize: 12
             }))}
@@ -440,22 +440,6 @@ const styles = StyleSheet.create({
   statSub: { fontSize: 9, color: '#94A3B8', fontWeight: '600', textTransform: 'uppercase' },
   statIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   statIcon: { fontSize: 20 },
-
-  // AI Insights Card
-  aiCard: {
-    backgroundColor: '#0F172A', borderRadius: 20, padding: 20, marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4,
-  },
-  aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-  aiHeaderIcon: { fontSize: 16 },
-  aiHeaderTitle: { fontSize: 11, fontWeight: '700', color: '#94A3B8', letterSpacing: 2, textTransform: 'uppercase' },
-  aiInsightBox: {
-    backgroundColor: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 10,
-  },
-  aiInsightTitle: { fontSize: 13, fontWeight: '600', color: '#FFFFFF', marginBottom: 4 },
-  aiInsightDesc: { fontSize: 12, color: '#94A3B8' },
-  aiInsightAction: { fontSize: 12, fontWeight: '700', color: '#6366F1', marginTop: 8 },
 
   // Section Cards
   sectionCard: {
