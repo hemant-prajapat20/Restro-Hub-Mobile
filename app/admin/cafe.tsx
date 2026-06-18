@@ -185,6 +185,14 @@ export default function CafeScreen() {
     setIsModalOpen(true);
   };
 
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 1800);
+  };
+
   const addToCart = (product: any) => {
     if (product.stockCount <= 0) {
       Alert.alert('Out of Stock', 'This item is currently out of stock');
@@ -195,7 +203,7 @@ export default function CafeScreen() {
       if (exist) return prev.map(i => i.item.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { item: product, quantity: 1, milk: 'None', sweetness: 'No Sweet', notes: '' }];
     });
-    Alert.alert('Added', `${product.name} added to cart`);
+    showToast(`✓ ${product.name} added`);
   };
 
   const removeFromCart = (id: string) => {
@@ -293,6 +301,12 @@ export default function CafeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Item Added Toast ── */}
+      {toastVisible && (
+        <View style={{ position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#C5A059', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, elevation: 8 }} pointerEvents="none">
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{toastMsg}</Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Cafe & Patisserie</Text>

@@ -272,6 +272,14 @@ export default function RestroSignatureScreen() {
   };
 
   // --- Billing Logic ---
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 1800);
+  };
+
   const addToCart = (dish: any) => {
     setCart(prev => {
       const currentId = dish.id;
@@ -281,6 +289,7 @@ export default function RestroSignatureScreen() {
       }
       return [...prev, { ...dish, quantity: 1 }];
     });
+    showToast(`✓ ${dish.name} added`);
   };
 
   const removeFromCart = (dishId: string) => {
@@ -446,6 +455,12 @@ export default function RestroSignatureScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Item Added Toast ── */}
+      {toastVisible && (
+        <View style={{ position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#D97706', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, elevation: 8 }} pointerEvents="none">
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{toastMsg}</Text>
+        </View>
+      )}
       {/* ── Imperial Header — hidden in POS mode to save screen space ── */}
       {activeTab === 'display' && (
         <View style={styles.headerBox}>

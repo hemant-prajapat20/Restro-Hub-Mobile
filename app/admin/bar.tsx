@@ -174,6 +174,14 @@ export default function BarLoungeScreen() {
   };
 
   // --- Billing & Cart ---
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 1800);
+  };
+
   const addToCart = (item: any) => {
     setCart(prev => {
       const existing = prev.find(i => i.item.id === item.id);
@@ -182,6 +190,7 @@ export default function BarLoungeScreen() {
       }
       return [...prev, { item, quantity: 1 }];
     });
+    showToast(`✓ ${item.name} added`);
   };
 
   const removeFromCart = (itemId: string) => {
@@ -287,6 +296,12 @@ export default function BarLoungeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Item Added Toast ── */}
+      {toastVisible && (
+        <View style={{ position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#8B5CF6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, elevation: 8 }} pointerEvents="none">
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{toastMsg}</Text>
+        </View>
+      )}
       <View style={{ flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 16 }}>
         <TouchableOpacity style={{ flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: activeTab === 'display' ? '#8B5CF6' : 'transparent', alignItems: 'center' }} onPress={() => setActiveTab('display')}>
           <Text style={{ fontWeight: '800', color: activeTab === 'display' ? '#8B5CF6' : '#94A3B8' }}>Inventory</Text>

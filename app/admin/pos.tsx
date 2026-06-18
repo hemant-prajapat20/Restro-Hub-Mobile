@@ -52,6 +52,14 @@ export default function POSScreen() {
     });
   }, [activeCategory, searchQuery, menuItems]);
 
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 1800);
+  };
+
   const addToCart = (item: any) => {
     setCart(prev => {
       const currentId = item.id || item._id;
@@ -61,6 +69,7 @@ export default function POSScreen() {
       }
       return [...prev, { itemId: currentId as string, name: item.name, category: item.category, price: item.price, quantity: 1 }];
     });
+    showToast(`✓ ${item.name} added`);
   };
 
   const removeFromCart = (itemId: string) => {
@@ -159,8 +168,14 @@ export default function POSScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Top Tabs ── */}
+      {/* ── Item Added Toast ── */}
+      {toastVisible && (
+        <View style={styles.toast} pointerEvents="none">
+          <Text style={styles.toastText}>{toastMsg}</Text>
+        </View>
+      )}
       <View style={styles.tabHeader}>
+
         <TouchableOpacity 
           style={[styles.tabBtn, activeTab === 'menu' && styles.tabBtnActive]} 
           onPress={() => setActiveTab('menu')}
@@ -458,4 +473,7 @@ const styles = StyleSheet.create({
   completePayBtn: { backgroundColor: '#10B981', paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#10B981', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   disabledBtn: { opacity: 0.5 },
   completePayBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  // Toast notification
+  toast: { position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#10B981', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  toastText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 });
