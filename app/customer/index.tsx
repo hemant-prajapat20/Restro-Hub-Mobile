@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, PanResponder } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../utils/api';
 import { RootState } from '../../store';
@@ -9,12 +10,38 @@ import { addToCart, removeFromCart } from '../../store/slices/cartSlice';
 
 export default function CustomerDashboard() {
   const dispatch = useDispatch();
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const user = useSelector((state: RootState) => state.auth.user);
   const cartState = useSelector((state: RootState) => state.cart);
   
   const [search, setSearch] = useState('');
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>((params.businessId as string) || null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+
+  React.useEffect(() => {
+    if (params.businessId) {
+      setSelectedBusinessId(params.businessId as string);
+    }
+  }, [params.businessId]);
+
+  // PanResponder for swipe‑right to go back to home
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (e, gestureState) => {
+      const { dx, dy } = gestureState;
+      // Detect swipe right or swipe down
+      return (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20) || Math.abs(dy) > 30;
+    },
+    onPanResponderRelease: (e, gestureState) => {
+      if (gestureState.dx > 50) {
+        // Swipe right → back to home (reset selected business)
+        setSelectedBusinessId(null);
+      } else if (gestureState.dy > 50) {
+        // Swipe down → back to home
+        setSelectedBusinessId(null);
+      }
+    },
+  });
 
   // Fetch Public Businesses
   const { data: businessesData, isLoading: businessesLoading } = useQuery({
@@ -151,7 +178,7 @@ export default function CustomerDashboard() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
         {/* Header Image */}
         <View style={styles.headerImageContainer}>
           {businessInfo.hotelImages && businessInfo.hotelImages.length > 0 ? (
@@ -163,23 +190,25 @@ export default function CustomerDashboard() {
               <Ionicons name="restaurant" size={60} color="#D4AF37" style={{ opacity: 0.5 }} />
             </View>
           )}
-          <TouchableOpacity style={styles.backButton} onPress={() => setSelectedBusinessId(null)}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
-          </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.backButtonTransparent} onPress={() => setSelectedBusinessId(null)}>
+          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+        </TouchableOpacity>
 
         {/* Business Info */}
         <View style={styles.businessInfo}>
           <Text style={styles.businessName}>{businessInfo.name}</Text>
           <Text style={styles.businessAddress}>{businessInfo.address}, {businessInfo.district}</Text>
           <View style={styles.infoRow}>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={14} color="#16A34A" />
-              <Text style={styles.ratingText}>4.5</Text>
-            </View>
-            <View style={styles.timeBadge}>
-              <Ionicons name="time-outline" size={14} color="#64748B" />
-              <Text style={styles.timeText}>30-40 min</Text>
+            <View style={styles.infoRow}>
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star" size={14} color="#16A34A" />
+                  <Text style={styles.ratingText}>4.5</Text>
+                </View>
+                <View style={styles.timeBadge}>
+                  <Ionicons name="time-outline" size={14} color="#64748B" />
+                  <Text style={styles.timeText}>30-40 min</Text>
+                </View>
             </View>
           </View>
         </View>
@@ -259,12 +288,14 @@ export default function CustomerDashboard() {
             );
           })}
         </View>
+
+
       </ScrollView>
 
       {/* Floating Cart Widget */}
       {totalCartItems > 0 && cartState.businessId === businessInfo._id && (
         <View style={styles.cartWidgetWrapper}>
-          <TouchableOpacity style={styles.cartWidget} onPress={() => {}}>
+          <TouchableOpacity style={styles.cartWidget} onPress={() => router.push('/customer/checkout')}>
             <View style={styles.cartLeft}>
               <View style={styles.cartBadge}>
                 <Text style={styles.cartBadgeText}>{totalCartItems}</Text>
@@ -506,7 +537,7 @@ const styles = StyleSheet.create({
     left: 16,
     width: 40,
     height: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent', // Removed white background
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -515,6 +546,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  backButtonTransparent: {
+    position: 'absolute',
+    top: 40,
+    left: 16,
+    width: 40,
+    height: 40,
+    // No background to remove the white circle
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   businessInfo: {
     padding: 20,
@@ -732,5 +775,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     marginRight: 4,
+  },
+  cartSummaryBox: {
+    backgroundColor: '#FFF7E6',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cartSummaryTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  cartItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cartItemName: {
+    fontSize: 14,
+    color: '#1E293B',
+    flex: 1,
+  },
+  cartItemControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  cartItemQty: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginHorizontal: 4,
+  },
+  cartItemTotal: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
   },
 });

@@ -62,17 +62,6 @@ export default function CustomerLayout() {
   const HeaderRight = () => (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
       <TouchableOpacity 
-        style={{ padding: 4, marginRight: 8 }} 
-        onPress={() => setShowNotifications(true)}
-      >
-        <Ionicons name="notifications-outline" size={26} color="#1E293B" />
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity 
         style={{ padding: 4 }} 
         onPress={() => router.push('/customer/profile')}
       >
@@ -157,6 +146,26 @@ export default function CustomerLayout() {
             title: 'Checkout',
             tabBarLabel: 'Checkout',
             tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={22} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'My Profile',
+            tabBarLabel: 'Profile',
+            tabBarIcon: ({ color }) => <Ionicons name="person-circle-outline" size={22} color={color} />, 
+          }}
+        />
+        <Tabs.Screen
+          name="CartScreen"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="NotificationHandler"
+          options={{
+            href: null,
           }}
         />
       </Tabs>
