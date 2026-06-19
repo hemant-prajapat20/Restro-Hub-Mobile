@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { Platform } from 'react-native';
 
 export interface CartItem {
   item: any; // Using any for MenuItem
@@ -13,28 +14,28 @@ interface CartState {
 
 const loadState = (): CartState => {
   try {
-    const serializedState = localStorage.getItem('cartState');
-    if (serializedState === null) {
-      return {
-        businessId: null,
-        businessName: null,
-        items: [],
-      };
+    if (Platform.OS === 'web') {
+      const serializedState = localStorage.getItem('cartState');
+      if (serializedState !== null) {
+        return JSON.parse(serializedState);
+      }
     }
-    return JSON.parse(serializedState);
   } catch (err) {
-    return {
-      businessId: null,
-      businessName: null,
-      items: [],
-    };
+    // Ignore read errors
   }
+  return {
+    businessId: null,
+    businessName: null,
+    items: [],
+  };
 };
 
 const saveState = (state: CartState) => {
   try {
-    const serializedState = JSON.stringify(state);
-    localStorage.setItem('cartState', serializedState);
+    if (Platform.OS === 'web') {
+      const serializedState = JSON.stringify(state);
+      localStorage.setItem('cartState', serializedState);
+    }
   } catch (err) {
     // Ignore write errors
   }
