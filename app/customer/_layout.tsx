@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Image, Vibration } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -28,9 +29,18 @@ export default function CustomerLayout() {
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const socket = io(socketUrl); 
     
-    socket.on('newCustomerNotification', (notif: any) => {
+    socket.on('newCustomerNotification', async (notif: any) => {
       if (notif.customerId === currentUser?._id) {
         refetchNotifications();
+        try {
+          Vibration.vibrate();
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg' }
+          );
+          await sound.playAsync();
+        } catch (e) {
+          console.log('Sound error:', e);
+        }
       }
     });
 
@@ -60,7 +70,15 @@ export default function CustomerLayout() {
   );
 
   const HeaderRight = () => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
+      <TouchableOpacity onPress={() => setShowNotifications(true)} style={{ position: 'relative', padding: 4 }}>
+        <Ionicons name="notifications-outline" size={24} color="#1E293B" />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       <TouchableOpacity 
         style={{ padding: 4 }} 
         onPress={() => router.push('/customer/profile')}

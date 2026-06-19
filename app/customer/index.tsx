@@ -58,11 +58,12 @@ export default function CustomerDashboard() {
 
   const businesses = businessesData?.data || [];
   const filteredBusinesses = businesses.filter((b: any) => 
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.district.toLowerCase().includes(search.toLowerCase())
+    (b.name && b.name.toLowerCase().includes(search.toLowerCase())) ||
+    (b.district && b.district.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const businessInfo = menuData?.business || {};
+  const businessInfoFromList = businesses.find((b: any) => b._id === selectedBusinessId) || {};
+  const businessInfo = { ...businessInfoFromList, ...(menuData?.business || {}) };
   const items = menuData?.items || [];
   const categories = ['All', ...Array.from(new Set(items.map((item: any) => item.category)))];
   const filteredItems = items.filter((item: any) => 
@@ -178,6 +179,9 @@ export default function CustomerDashboard() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.fixedBackButton} onPress={() => setSelectedBusinessId(null)}>
+        <Ionicons name="arrow-back" size={20} color="#1E293B" />
+      </TouchableOpacity>
       <ScrollView showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
         {/* Header Image */}
         <View style={styles.headerImageContainer}>
@@ -191,9 +195,6 @@ export default function CustomerDashboard() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.backButtonTransparent} onPress={() => setSelectedBusinessId(null)}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
-        </TouchableOpacity>
 
         {/* Business Info */}
         <View style={styles.businessInfo}>
@@ -547,17 +548,22 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  backButtonTransparent: {
+  fixedBackButton: {
     position: 'absolute',
-    top: 40,
+    top: 16,
     left: 16,
-    width: 40,
-    height: 40,
-    // No background to remove the white circle
-    backgroundColor: 'transparent',
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   businessInfo: {
     padding: 20,
