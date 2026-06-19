@@ -227,26 +227,45 @@ export default function AdminDashboard() {
       {/* ── Sales Mix by Category ── */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Sales Mix by Category</Text>
-        <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Revenue distribution by items</Text>
         {categoryData.length > 0 ? (
-          <PieChart
-            data={categoryData.slice(0, 5).map((c: any) => ({
-              name: c.name,
-              population: c.value,
-              color: c.color || '#' + Math.floor(Math.random() * 16777215).toString(16),
-              legendFontColor: '#64748B',
-              legendFontSize: 12
-            }))}
-            width={Dimensions.get("window").width - 48}
-            height={200}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor={"population"}
-            backgroundColor={"transparent"}
-            paddingLeft={"15"}
-            absolute
-          />
+          <View style={{ marginTop: 24 }}>
+            <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative', height: 180 }}>
+              <PieChart
+                data={categoryData.slice(0, 5).map((c: any) => ({
+                  name: c.name,
+                  population: c.value,
+                  color: c.color || '#' + Math.floor(Math.random() * 16777215).toString(16),
+                  legendFontColor: '#64748B',
+                  legendFontSize: 12
+                }))}
+                width={Dimensions.get("window").width - 48}
+                height={180}
+                chartConfig={{
+                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                }}
+                accessor={"population"}
+                backgroundColor={"transparent"}
+                paddingLeft={"0"}
+                center={[((Dimensions.get("window").width - 48) / 4), 0]}
+                hasLegend={false}
+              />
+              {/* Fake Donut Hole */}
+              <View style={{ position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: '#FFFFFF' }} />
+            </View>
+
+            {/* Custom Legend */}
+            <View style={{ marginTop: 24, gap: 16 }}>
+              {categoryData.slice(0, 5).map((cat: any, i: number) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: cat.color || '#D4AF37' }} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569' }}>{cat.name}</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{cat.value}%</Text>
+                </View>
+              ))}
+            </View>
+          </View>
         ) : (
           <Text style={styles.emptyText}>No category data available yet.</Text>
         )}
