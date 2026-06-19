@@ -22,7 +22,7 @@ import { RootState } from '../../store';
 import api from '../../utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.78;
+const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.75;
 
 // ──────────────────────────────────────────────
 // Notification Alert Helper (vibration)
@@ -393,6 +393,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
+  const router = useRouter();
   const user = useSelector((state: RootState) => state.auth.user);
   const initials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : 'G';
 
@@ -490,7 +491,11 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
         <View style={styles.divider} />
 
         {/* Profile avatar with actual image */}
-        <View style={styles.avatar}>
+        <TouchableOpacity 
+          style={styles.avatar}
+          onPress={() => router.push('/admin/settings')}
+          activeOpacity={0.8}
+        >
           {user?.profilePhoto ? (
             <Image
               source={{ uri: user.profilePhoto }}
@@ -499,7 +504,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
           ) : (
             <Text style={styles.avatarText}>{initials}</Text>
           )}
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Notification Dropdown */}
@@ -655,7 +660,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#6366F1',
+    color: '#D4AF37',
   },
 
   // ── Sidebar Overlay ──
@@ -675,7 +680,7 @@ const styles = StyleSheet.create({
     width: SIDEBAR_WIDTH,
     backgroundColor: '#0F172A',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 40 : 50,
-    flex: 1,
+    height: '100%',
   },
   sidebarHeader: {
     paddingHorizontal: 20,
@@ -692,11 +697,11 @@ const styles = StyleSheet.create({
   logoBox: {
     width: 38,
     height: 38,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#D4AF37',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: '#D4AF37',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
@@ -712,7 +717,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   logoAccent: {
-    color: '#6366F1',
+    color: '#D4AF37',
   },
   closeBtn: {
     width: 32,
@@ -743,8 +748,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   navItemActive: {
-    backgroundColor: '#6366F1',
-    shadowColor: '#6366F1',
+    backgroundColor: '#D4AF37',
+    shadowColor: '#D4AF37',
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 4,
@@ -832,7 +837,7 @@ const styles = StyleSheet.create({
   },
   notifMarkAll: {
     fontSize: 12,
-    color: '#6366F1',
+    color: '#D4AF37',
     fontWeight: '600',
   },
   notifEmpty: {
@@ -880,7 +885,7 @@ const styles = StyleSheet.create({
   notifFooterText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6366F1',
+    color: '#D4AF37',
   },
 
   // ── Search Modal ──
