@@ -4,9 +4,11 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
+    "@tanstack/react-query": "^5.101.0",
     "axios": "^1.18.0",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
+    "expo-file-system": "~19.0.23",
     "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-print": "~15.0.8",
