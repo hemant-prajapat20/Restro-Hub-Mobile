@@ -1,19 +1,91 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
+import { logout, setCredentials } from '../../store/slices/authSlice';
 import { RootState } from '../../store';
+import api from '../../utils/api';
 
 export default function Profile() {
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const token = useSelector((state: RootState) => state.auth.token);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
     router.replace('/login');
+  };
+
+  const handlePickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission to access camera roll is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      uploadImage(result.assets[0]);
+    }
+  };
+
+  const uploadImage = async (imageAsset: ImagePicker.ImagePickerAsset) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      const filename = imageAsset.uri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      formData.append('file', {
+        uri: imageAsset.uri,
+        name: filename,
+        type,
+      } as any);
+
+      const uploadRes = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const photoUrl = uploadRes.data.url;
+
+      await api.put('/auth/profile/photo', { profilePhoto: photoUrl });
+      
+      if (user && token) {
+        dispatch(setCredentials({ user: { ...user, profilePhoto: photoUrl }, token }));
+      }
+      Alert.alert('Success', 'Profile photo updated!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload photo');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setIsUploading(true);
+    try {
+      await api.put('/auth/profile/photo', { profilePhoto: '' });
+      if (user && token) {
+         dispatch(setCredentials({ user: { ...user, profilePhoto: '' }, token }));
+      }
+      Alert.alert('Success', 'Profile photo removed');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to remove photo');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!user) return null;
@@ -27,13 +99,31 @@ export default function Profile() {
       </View>
 
       <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          {user.profilePhoto ? (
-            <Image source={{ uri: user.profilePhoto }} style={styles.avatar} />
-          ) : (
-            <Ionicons name="person" size={40} color="#D4AF37" />
+        <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage} disabled={isUploading}>
+          <View style={styles.avatarContainer}>
+            {user.profilePhoto ? (
+              <Image source={{ uri: user.profilePhoto }} style={styles.avatar} />
+            ) : (
+              <Ionicons name="person" size={40} color="#D4AF37" />
+            )}
+            {isUploading && (
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+          {!isUploading && (
+            <View style={styles.editBadge}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
           )}
-        </View>
+        </TouchableOpacity>
+        
+        {user.profilePhoto && !isUploading && (
+           <TouchableOpacity onPress={handleRemovePhoto} style={styles.removePhotoBtn}>
+             <Text style={styles.removePhotoText}>Remove photo</Text>
+           </TouchableOpacity>
+        )}
         <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
         <Text style={styles.userRole}>Customer</Text>
       </View>
@@ -114,6 +204,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatarContainer: {
     width: 100,
     height: 100,
@@ -123,13 +217,44 @@ const styles = StyleSheet.create({
     borderColor: '#FEF08A',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
     overflow: 'hidden',
   },
   avatar: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  uploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#1E293B',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    zIndex: 10,
+  },
+  removePhotoBtn: {
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+  },
+  removePhotoText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EF4444',
   },
   userName: {
     fontSize: 22,

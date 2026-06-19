@@ -19,7 +19,7 @@ interface Address {
 export default function SavedAddresses() {
   const user = useSelector((state: RootState) => state.auth.user);
   const queryClient = useQueryClient();
-  
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
     label: 'Home',
@@ -94,11 +94,11 @@ export default function SavedAddresses() {
           <Text style={styles.headerTitle}>Saved Addresses</Text>
         </View>
         {!showAddForm && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addBtn}
             onPress={() => setShowAddForm(true)}
           >
-            <Ionicons name="add" size={20} color="#1E293B" />
+            <Ionicons name="add" size={16} color="#1E293B" />
             <Text style={styles.addBtnText}>Add New</Text>
           </TouchableOpacity>
         )}
@@ -107,7 +107,7 @@ export default function SavedAddresses() {
       {showAddForm && (
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Add a new delivery address</Text>
-          
+
           <View style={styles.labelRow}>
             {['Home', 'Work', 'Other'].map(lbl => (
               <TouchableOpacity
@@ -115,10 +115,10 @@ export default function SavedAddresses() {
                 style={[styles.labelBtn, newAddress.label === lbl && styles.labelBtnActive]}
                 onPress={() => setNewAddress({ ...newAddress, label: lbl })}
               >
-                <Ionicons 
-                  name={getIconForLabel(lbl) as any} 
-                  size={16} 
-                  color={newAddress.label === lbl ? '#FFFFFF' : '#64748B'} 
+                <Ionicons
+                  name={getIconForLabel(lbl) as any}
+                  size={16}
+                  color={newAddress.label === lbl ? '#FFFFFF' : '#64748B'}
                 />
                 <Text style={[styles.labelBtnText, newAddress.label === lbl && styles.labelBtnTextActive]}>
                   {lbl}
@@ -170,13 +170,13 @@ export default function SavedAddresses() {
           </View>
 
           <View style={styles.formActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cancelBtn}
               onPress={() => setShowAddForm(false)}
             >
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.saveBtn}
               onPress={handleSave}
               disabled={saveMutation.isPending}
@@ -216,7 +216,7 @@ export default function SavedAddresses() {
                 <Text style={styles.addressText}>{address.street}</Text>
                 <Text style={styles.addressText}>{address.city}, {address.state} {address.zipCode}</Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.deleteBtn}
                 onPress={() => {
                   Alert.alert(
@@ -256,25 +256,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '900',
     color: '#1E293B',
+    flexShrink: 1,
   },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 4,
+    backgroundColor: '#1E293B',
+    padding: 8,
+    borderRadius: 8,
+
+    marginLeft: 'auto',
   },
   addBtnText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#FFFFFF',
+    marginRight: 10,
   },
   formContainer: {
     marginHorizontal: 20,
