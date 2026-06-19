@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import RazorpayCheckout from 'react-native-razorpay';
+import Constants from 'expo-constants';
 import { clearCart, addToCart, removeFromCart } from '../../store/slices/cartSlice';
 
 // Helper to format numbers as currency
@@ -91,6 +92,16 @@ useEffect(() => {
           theme: { color: '#D4AF37' }
         };
 
+        if (Constants.appOwnership === 'expo' || !RazorpayCheckout) {
+          // Expo Go Fallback Mock
+          console.warn('Running in Expo Go. Mocking successful payment.');
+          setTimeout(() => {
+            const randomString = Math.random().toString(36).substring(2, 10).toUpperCase();
+            resolve(`pay_mock${randomString}`);
+          }, 1500);
+          return;
+        }
+
         RazorpayCheckout.open(options).then(async (data: any) => {
           try {
             const verifyRes = await api.post('/payment/verify', {
@@ -151,20 +162,36 @@ useEffect(() => {
 
     setIsPlacingOrder(true);
     try {
-      await api.post('/customer-orders/order', {
-        items: cartItems.map(ci => ({ productId: ci.item._id, quantity: ci.quantity, price: ci.item.price })),
-        addressId: selectedAddressId,
-        paymentId,
+      const addressToUse = addresses?.find((a: any) => a._id === selectedAddressId);
+
+      const payload: any = {
+        items: cartItems.map(c => ({
+          menuItem: c.item._id,
+          name: c.item.name,
+          quantity: c.quantity,
+          price: c.item.price,
+          subtotal: c.item.price * c.quantity
+        })),
         paymentMethod,
-        customerDetails: {
-          name: customerName,
-          phone: customerPhone
-        },
         subtotal,
         tax,
-        deliveryFee,
-        total,
-      });
+        total: total, // we are ignoring delivery fee here as web dashboard does not send it, or we can just send total
+        customerDetails: {
+          name: customerName,
+          phone: customerPhone,
+          address: addressToUse?.street || '',
+          city: addressToUse?.city || '',
+          state: addressToUse?.state || '',
+          zipCode: addressToUse?.zipCode || '',
+        }
+      };
+
+      if (paymentMethod === 'Online') {
+        payload.transactionId = paymentId;
+      }
+
+      await api.post('/customer-orders/order/' + cartBusinessId, payload);
+      
       setShowPaymentModal(false);
       dispatch(clearCart());
       Alert.alert('Success', 'Your order has been placed!', [{ text: 'OK', onPress: () => router.replace('/customer/past_orders') }]);

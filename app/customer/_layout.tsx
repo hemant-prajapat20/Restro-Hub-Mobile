@@ -26,6 +26,13 @@ export default function CustomerLayout() {
 
   useEffect(() => {
     // Connect to backend websocket
+    // Configure Audio to play even in silent mode
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      playThroughEarpieceAndroid: false
+    });
+
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const socket = io(socketUrl); 
     
@@ -180,12 +187,6 @@ export default function CustomerLayout() {
             href: null,
           }}
         />
-        <Tabs.Screen
-          name="NotificationHandler"
-          options={{
-            href: null,
-          }}
-        />
       </Tabs>
 
       {/* Notifications Modal */}
@@ -223,7 +224,7 @@ export default function CustomerLayout() {
                       <Text style={[styles.notifTitle, !notif.isRead && styles.notifTitleUnread]}>
                         {notif.title}
                       </Text>
-                      <Text style={styles.notifMessage}>{notif.message}</Text>
+                      <Text style={[styles.notifMessage, !notif.isRead && styles.notifMessageUnread]}>{notif.message}</Text>
                       <Text style={styles.notifTime}>
                         {new Date(notif.createdAt).toLocaleDateString()} • {new Date(notif.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </Text>
@@ -332,6 +333,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginBottom: 4,
+  },
+  notifMessageUnread: {
+    fontWeight: '700',
+    color: '#334155',
   },
   notifTime: {
     fontSize: 11,

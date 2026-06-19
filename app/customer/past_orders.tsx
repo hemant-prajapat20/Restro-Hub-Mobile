@@ -145,6 +145,20 @@ export default function PastOrders() {
                         </Text>
                       </View>
                     )}
+                    {order.status === 'Out for Delivery' && order.driverDetails?.name && (
+                      <View style={[styles.extraDetailRow, { backgroundColor: '#FFFBEB', padding: 10, borderRadius: 8, marginTop: 8, borderColor: '#FDE68A', borderWidth: 1, alignItems: 'flex-start' }]}>
+                        <Ionicons name="bicycle" size={20} color="#D4AF37" style={{ marginTop: 2 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, color: '#92400E', fontWeight: '700' }}>Out for Delivery</Text>
+                          <Text style={{ fontSize: 13, color: '#B45309', marginTop: 2, fontWeight: '500' }}>
+                            Partner: {order.driverDetails.name}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: '#B45309', fontWeight: '500' }}>
+                            Contact: {order.driverDetails.phone}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
 
                   <View style={styles.receiptDivider} />
