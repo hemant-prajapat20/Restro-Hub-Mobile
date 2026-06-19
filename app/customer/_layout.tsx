@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
-import { Tabs } from 'expo-router';
+import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Image } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
@@ -9,6 +9,7 @@ import api from '../../utils/api';
 import { RootState } from '../../store';
 
 export default function CustomerLayout() {
+  const router = useRouter();
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -50,23 +51,41 @@ export default function CustomerLayout() {
   };
 
   const HeaderTitle = () => (
-    <Text style={{ fontSize: 22, fontWeight: '900', color: '#1E293B', letterSpacing: -0.5 }}>
-      Restro<Text style={{ color: '#D4AF37' }}>Hub</Text>
-    </Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <Ionicons name="restaurant" size={24} color="#D4AF37" />
+      <Text style={{ fontSize: 22, fontWeight: '900', color: '#1E293B', letterSpacing: -0.5 }}>
+        Restro<Text style={{ color: '#D4AF37' }}>Hub</Text>
+      </Text>
+    </View>
   );
 
   const HeaderRight = () => (
-    <TouchableOpacity 
-      style={{ marginRight: 16, padding: 4 }} 
-      onPress={() => setShowNotifications(true)}
-    >
-      <Ionicons name="notifications-outline" size={26} color="#1E293B" />
-      {unreadCount > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unreadCount}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+      <TouchableOpacity 
+        style={{ padding: 4, marginRight: 8 }} 
+        onPress={() => setShowNotifications(true)}
+      >
+        <Ionicons name="notifications-outline" size={26} color="#1E293B" />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={{ padding: 4 }} 
+        onPress={() => router.push('/customer/profile')}
+      >
+        {currentUser?.profilePhoto ? (
+          <Image 
+            source={{ uri: currentUser.profilePhoto }} 
+            style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#D4AF37' }} 
+          />
+        ) : (
+          <Ionicons name="person-circle-outline" size={28} color="#1E293B" />
+        )}
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -133,11 +152,11 @@ export default function CustomerLayout() {
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="checkout"
           options={{
-            title: 'My Profile',
-            tabBarLabel: 'Profile',
-            tabBarIcon: ({ color }) => <Ionicons name="person" size={22} color={color} />,
+            title: 'Checkout',
+            tabBarLabel: 'Checkout',
+            tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={22} color={color} />,
           }}
         />
       </Tabs>
