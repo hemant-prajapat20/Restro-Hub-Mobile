@@ -100,7 +100,7 @@ export default function TransactionsScreen() {
           ) : (
             filteredOrders.map((order: any) => {
               const invId = order._id || order.id || '';
-              const shortId = order.transactionId ? order.transactionId : (invId ? invId.slice(-8).toUpperCase() : 'N/A');
+              const shortId = invId ? invId.slice(-8).toUpperCase() : 'N/A';
               const statusStyle = getStatusColor(order.status);
               const typeStyle = getTypeColor();
 

@@ -339,7 +339,7 @@ export default function AdminDashboard() {
         {recentOrders.length > 0 ? (
           recentOrders.map((order: any, i: number) => {
             const invId = order._id || order.id || '';
-            const shortId = order.transactionId || (invId ? invId.slice(-8).toUpperCase() : 'N/A');
+            const shortId = invId ? invId.slice(-8).toUpperCase() : 'N/A';
             return (
               <TouchableOpacity key={i} style={styles.tableRow} onPress={() => setSelectedInvoice(order)}>
                 <View style={{ flex: 2 }}>
