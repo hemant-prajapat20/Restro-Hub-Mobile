@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,24 @@ export default function SettingsScreen() {
   const [isStoreOpen, setIsStoreOpen] = useState(user?.businessData?.isStoreOpen ?? true);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingHotel, setIsUploadingHotel] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/auth/profile');
+        if (response.data?.data) {
+          dispatch(setCredentials({
+            user: response.data.data,
+            token: token || ''
+          }));
+          setIsStoreOpen(response.data.data?.businessData?.isStoreOpen ?? true);
+        }
+      } catch (error) {
+        console.log('Failed to fetch latest profile', error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Local feature states simulating backend toggles
   const [features, setFeatures] = useState(() => {
@@ -227,6 +245,43 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Business Details */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Business Details</Text>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Business Name</Text>
+            <Text style={styles.detailValue}>{user?.businessData?.name || 'RestroHub Prime'}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Contact Phone</Text>
+            <Text style={styles.detailValue}>{user?.phone || user?.businessData?.contactPhone || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Registered Address</Text>
+            <Text style={styles.detailValue}>{user?.businessData?.address || 'N/A'}</Text>
+            <Text style={styles.detailSubValue}>
+              {[user?.businessData?.district, user?.businessData?.state].filter(Boolean).join(', ') || 'N/A'}
+            </Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Subscription Paid</Text>
+            <Text style={[styles.detailValue, { color: '#059669' }]}>
+              {user?.businessData?.subscriptionAmountPaid ? `₹ ${user.businessData.subscriptionAmountPaid.toLocaleString()}` : 'N/A'}
+            </Text>
+          </View>
+          
+          <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+            <Text style={styles.detailLabel}>Plan Expiry</Text>
+            <Text style={styles.detailValue}>
+              {user?.businessData?.subscriptionExpiry ? new Date(user.businessData.subscriptionExpiry).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
+            </Text>
+          </View>
+        </View>
+
         {/* Store Operations */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Store Operations</Text>
@@ -332,6 +387,11 @@ const styles = StyleSheet.create({
   profileName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   profileEmail: { fontSize: 13, color: '#64748B', fontWeight: '500' },
   profileRole: { fontSize: 11, color: '#D4AF37', fontWeight: '800', textTransform: 'uppercase', marginTop: 4, backgroundColor: '#FFFBEB', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  
+  detailRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  detailLabel: { fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  detailValue: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  detailSubValue: { fontSize: 13, color: '#475569', fontWeight: '500', marginTop: 2 },
   
   outlineBtn: { borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
   outlineBtnText: { fontSize: 13, fontWeight: '700', color: '#475569' },
