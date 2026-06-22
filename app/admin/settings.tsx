@@ -8,13 +8,15 @@ import {
   Switch,
   Image,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { setCredentials } from '../../store/slices/authSlice';
 import api from '../../utils/api';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function SettingsScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -24,22 +26,36 @@ export default function SettingsScreen() {
   const [isStoreOpen, setIsStoreOpen] = useState(user?.businessData?.isStoreOpen ?? true);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingHotel, setIsUploadingHotel] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get(`/auth/profile?t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      if (response.data?.data) {
+        dispatch(setCredentials({
+          user: response.data.data,
+          token: token || ''
+        }));
+        setIsStoreOpen(response.data.data?.businessData?.isStoreOpen ?? true);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfile();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get('/auth/profile');
-        if (response.data?.data) {
-          dispatch(setCredentials({
-            user: response.data.data,
-            token: token || ''
-          }));
-          setIsStoreOpen(response.data.data?.businessData?.isStoreOpen ?? true);
-        }
-      } catch (error) {
-        console.log('Failed to fetch latest profile', error);
-      }
-    };
     fetchProfile();
   }, []);
 
@@ -56,6 +72,21 @@ export default function SettingsScreen() {
       reservations: backendToggles.reservations ?? true
     };
   });
+
+  // Keep local toggles in sync with Redux user updates
+  useEffect(() => {
+    if (user?.businessData?.featureToggles) {
+      setFeatures({
+        notifications: user.businessData.featureToggles.notifications ?? true,
+        onlineOrders: user.businessData.featureToggles.onlineOrders ?? true,
+        vip: user.businessData.featureToggles.vip ?? true,
+        cafe: user.businessData.featureToggles.cafe ?? true,
+        restaurant: user.businessData.featureToggles.restaurant ?? true,
+        bar: user.businessData.featureToggles.bar ?? true,
+        reservations: user.businessData.featureToggles.reservations ?? true
+      });
+    }
+  }, [user?.businessData?.featureToggles]);
 
   const toggleFeature = async (key: keyof typeof features) => {
     const newValue = !features[key];
@@ -79,7 +110,7 @@ export default function SettingsScreen() {
 
   const pickImage = async (type: 'profile' | 'hotel') => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
@@ -87,29 +118,29 @@ export default function SettingsScreen() {
 
     if (!result.canceled && result.assets[0]) {
       if (type === 'profile') {
-        uploadProfileImage(result.assets[0].uri);
+        uploadProfileImage(result.assets[0]);
       } else {
-        uploadHotelImage(result.assets[0].uri);
+        uploadHotelImage(result.assets[0]);
       }
     }
   };
 
-  const uploadProfileImage = async (uri: string) => {
+  const uploadProfileImage = async (asset: ImagePicker.ImagePickerAsset) => {
     setIsUploadingProfile(true);
     try {
       const formData = new FormData();
       formData.append('image', {
-        uri,
-        name: 'profile.jpg',
-        type: 'image/jpeg'
+        uri: asset.uri,
+        name: asset.fileName || 'profile.jpg',
+        type: asset.mimeType || 'image/jpeg'
       } as any);
 
-      // Assume /upload endpoint returns { url: '...' }
       const uploadRes = await api.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       const imageUrl = uploadRes.data.url;
+      
       const updateRes = await api.put('/auth/profile/photo', { profilePhoto: imageUrl });
       
       dispatch(setCredentials({
@@ -119,38 +150,43 @@ export default function SettingsScreen() {
       Alert.alert('Success', 'Profile photo updated');
     } catch (err) {
       console.log('Profile upload error', err);
-      Alert.alert('Error', 'Failed to upload profile photo');
+      Alert.alert('Error', 'Failed to update profile photo');
     } finally {
       setIsUploadingProfile(false);
     }
   };
 
-  const uploadHotelImage = async (uri: string) => {
+  const uploadHotelImage = async (asset: ImagePicker.ImagePickerAsset) => {
     setIsUploadingHotel(true);
     try {
       const formData = new FormData();
       formData.append('image', {
-        uri,
-        name: 'hotel.jpg',
-        type: 'image/jpeg'
+        uri: asset.uri,
+        name: asset.fileName || 'hotel.jpg',
+        type: asset.mimeType || 'image/jpeg'
       } as any);
 
       const uploadRes = await api.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+      console.log('Upload response:', uploadRes.data);
       const imageUrl = uploadRes.data.url;
+      console.log('Uploaded image URL:', imageUrl);
+      
       const currentImages = user?.businessData?.hotelImages || [];
       const newImages = [...currentImages, imageUrl];
+      console.log('New hotel images array to send:', newImages);
       
-      await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
-      
-      const updatedUser = { ...user, businessData: { ...user?.businessData, hotelImages: newImages } };
-      dispatch(setCredentials({
-        user: updatedUser as any,
-        token: token || '' 
-      }));
-      Alert.alert('Success', 'Hotel picture added');
+      const putRes = await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
+      console.log('PUT hotel images response:', putRes.data);
+      // Update Redux store with the fresh business data from the PUT response
+      const updatedBusiness = putRes.data?.data || {};
+      const updatedUser = { ...user, businessData: updatedBusiness } as any;
+      dispatch(setCredentials({ user: updatedUser, token: token || '' }));
+      // Refresh full profile to sync other fields
+      await fetchProfile();
+      // await fetchProfile();
+
     } catch (err) {
       console.log('Hotel upload error', err);
       Alert.alert('Error', 'Failed to upload hotel picture');
@@ -169,18 +205,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleRemoveHotelImage = async (urlToRemove: string) => {
-    try {
-      const currentImages = user?.businessData?.hotelImages || [];
-      const newImages = currentImages.filter((url: string) => url !== urlToRemove);
-      await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
-      const updatedUser = { ...user, businessData: { ...user?.businessData, hotelImages: newImages } } as any;
-      dispatch(setCredentials({ user: updatedUser, token: token || '' }));
-      Alert.alert('Success', 'Picture removed');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to remove picture');
-    }
-  };
+
 
   const handleToggleStore = async (val: boolean) => {
     setIsStoreOpen(val);
@@ -197,7 +222,11 @@ export default function SettingsScreen() {
   const hotelImages = user?.businessData?.hotelImages || [];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D4AF37']} />}
+    >
       {/* Header Info */}
       <View style={styles.headerBox}>
         <View style={styles.iconBox}>
@@ -282,39 +311,32 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Store Operations */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Store Operations</Text>
-          
-          <View style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Store Open Status</Text>
-              <Text style={styles.settingDesc}>
-                {isStoreOpen ? 'Accepting new orders' : 'Currently not accepting orders'}
-              </Text>
-            </View>
-            <Switch
-              value={isStoreOpen}
-              onValueChange={handleToggleStore}
-              trackColor={{ false: '#CBD5E1', true: '#D4AF37' }}
-              thumbColor={'#ffffff'}
-            />
-          </View>
-        </View>
-
         {/* Feature Toggles */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Active Modules & Features</Text>
           <Text style={styles.settingDesc}>Enable or disable specific features for your business based on your current plan.</Text>
           <View style={{ marginTop: 12 }}>
+            <View style={styles.settingRow}>
+              <View style={{ flex: 1, paddingRight: 16 }}>
+                <Text style={styles.settingLabel}>{isStoreOpen ? 'Restaurant is Open' : 'Restaurant is Closed'}</Text>
+                <Text style={styles.settingDesc}>
+                  {isStoreOpen ? 'Customers can view menu and place orders.' : 'Store is closed. Orders are paused.'}
+                </Text>
+              </View>
+              <Switch
+                value={isStoreOpen}
+                onValueChange={handleToggleStore}
+                trackColor={{ false: '#CBD5E1', true: '#D4AF37' }}
+                thumbColor={'#ffffff'}
+              />
+            </View>
             {[
               { key: 'notifications', title: 'Push Notifications', desc: 'Receive instant alerts for new orders and reservations.', condition: true },
               { key: 'onlineOrders', title: 'Online Orders (Delivery)', desc: 'Accept delivery and takeaway orders from customers online.', condition: true },
               { key: 'vip', title: 'VIP Management', desc: 'Track and reward high-value customers with loyalty points.', condition: true },
-              { key: 'restaurant', title: 'Restaurant Dining', desc: 'Full dining experience with KDS and POS billing.', condition: user?.businessData?.platforms?.includes('Restaurant') },
-              { key: 'cafe', title: 'Cafe & Patisserie', desc: 'Quick service mode for cafes, bakeries, and coffee shops.', condition: user?.businessData?.platforms?.includes('Cafeteria') },
-              { key: 'bar', title: 'Bar Lounge', desc: 'Manage bar inventory, drink menus, and tabs.', condition: user?.businessData?.platforms?.includes('Bar') },
-              { key: 'cafeteria', title: 'Cafeteria', desc: 'Token-based ordering for corporate cafeterias and canteens.', condition: user?.businessData?.platforms?.includes('GenericCafeteria') },
+              { key: 'restaurant', title: 'Restaurant Dining', desc: 'Full dining experience with KDS and POS billing.', condition: true },
+              { key: 'cafe', title: 'Cafe & Patisserie', desc: 'Quick service mode for cafes, bakeries, and coffee shops.', condition: true },
+              { key: 'bar', title: 'Bar Lounge', desc: 'Manage bar inventory, drink menus, and tabs.', condition: true },
               { key: 'reservations', title: 'Table Booking', desc: 'Allow customers to pre-book tables or event slots.', condition: true },
             ]
               .filter(item => item.condition)
@@ -352,9 +374,7 @@ export default function SettingsScreen() {
             {hotelImages.map((uri: string, i: number) => (
               <View key={i} style={styles.hotelImageWrapper}>
                 <Image source={{ uri }} style={styles.hotelImage} />
-                <TouchableOpacity style={styles.removeImageBtn} onPress={() => handleRemoveHotelImage(uri)}>
-                  <Text style={styles.removeImageText}>✕</Text>
-                </TouchableOpacity>
+
               </View>
             ))}
           </ScrollView>
