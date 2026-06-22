@@ -128,7 +128,7 @@ export default function MessageCenterScreen() {
       {/* List */}
       <ScrollView contentContainerStyle={styles.listContainer}>
         {isLoading ? (
-          <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#D4AF37" style={{ marginTop: 40 }} />
         ) : filteredMessages.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={{ fontSize: 40, marginBottom: 16 }}>📭</Text>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   headerCard: { backgroundColor: '#fff', margin: 16, padding: 16, borderRadius: 24, borderWidth: 1, borderColor: '#F1F5F9' },
   headerInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
-  iconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 48, height: 48, backgroundColor: '#FFFBEB', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   iconText: { fontSize: 24 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   headerSub: { fontSize: 12, color: '#64748B', fontWeight: '500' },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   tabsWrapper: { marginBottom: 8 },
   tabsScroll: { paddingHorizontal: 16, gap: 8 },
   tabBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', gap: 6 },
-  tabBtnActive: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
+  tabBtnActive: { backgroundColor: '#D4AF37', borderColor: '#D4AF37' },
   tabIcon: { fontSize: 14, opacity: 0.5 },
   tabIconActive: { opacity: 1 },
   tabLabel: { fontSize: 13, fontWeight: '700', color: '#475569' },
@@ -190,9 +190,9 @@ const styles = StyleSheet.create({
 
   messagesCard: { backgroundColor: '#fff', borderRadius: 24, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden' },
   msgRow: { flexDirection: 'row', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', backgroundColor: '#fff' },
-  msgRowUnread: { backgroundColor: '#EEF2FF', borderLeftWidth: 4, borderLeftColor: '#6366F1' },
+  msgRowUnread: { backgroundColor: '#FFFBEB', borderLeftWidth: 4, borderLeftColor: '#D4AF37' },
   msgIconCol: { marginRight: 12, position: 'relative', marginTop: 2 },
-  unreadDot: { position: 'absolute', top: -4, right: -4, width: 10, height: 10, borderRadius: 5, backgroundColor: '#6366F1', borderWidth: 2, borderColor: '#EEF2FF', zIndex: 2 },
+  unreadDot: { position: 'absolute', top: -4, right: -4, width: 10, height: 10, borderRadius: 5, backgroundColor: '#D4AF37', borderWidth: 2, borderColor: '#FFFBEB', zIndex: 2 },
   msgBody: { flex: 1 },
   msgTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   msgAction: { flex: 1, fontSize: 14, marginRight: 8 },

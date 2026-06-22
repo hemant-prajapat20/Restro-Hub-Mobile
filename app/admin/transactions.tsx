@@ -94,7 +94,7 @@ export default function TransactionsScreen() {
 
         <ScrollView contentContainerStyle={styles.listContainer}>
           {isLoading ? (
-            <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color="#D4AF37" style={{ marginTop: 40 }} />
           ) : filteredOrders.length === 0 ? (
             <Text style={styles.emptyText}>No orders found</Text>
           ) : (
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   
   headerBox: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 12 },
-  iconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 48, height: 48, backgroundColor: '#FFFBEB', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   iconText: { fontSize: 24 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   headerSub: { fontSize: 12, color: '#64748B', fontWeight: '500' },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
 
   orderCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 5, elevation: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
-  orderIdText: { fontSize: 14, fontWeight: '700', color: '#6366F1', marginBottom: 4 },
+  orderIdText: { fontSize: 14, fontWeight: '700', color: '#D4AF37', marginBottom: 4 },
   dateText: { fontSize: 10, fontWeight: '600', color: '#94A3B8' },
   
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
@@ -188,5 +188,5 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#F8FAFC', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   totalText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   totalAmount: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  viewReceiptText: { fontSize: 10, fontWeight: '800', color: '#6366F1', textTransform: 'uppercase', letterSpacing: 1 },
+  viewReceiptText: { fontSize: 10, fontWeight: '800', color: '#D4AF37', textTransform: 'uppercase', letterSpacing: 1 },
 });
