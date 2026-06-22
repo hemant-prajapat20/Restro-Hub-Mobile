@@ -72,7 +72,7 @@ export default function ReportsScreen() {
   if (isLoading && !reports) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#D4AF37" />
         <Text style={styles.loadingText}>Loading Reports & GST...</Text>
       </View>
     );
@@ -128,7 +128,7 @@ export default function ReportsScreen() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6366F1']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D4AF37']} />}
     >
       <View style={styles.header}>
         <View style={{ flex: 1, paddingRight: 12 }}>
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#1E293B' },
   headerSub: { fontSize: 14, color: '#64748B', marginTop: 2, fontWeight: '500' },
-  exportBtn: { backgroundColor: '#6366F1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, justifyContent: 'center', alignItems: 'center', minWidth: 100 },
+  exportBtn: { backgroundColor: '#D4AF37', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, justifyContent: 'center', alignItems: 'center', minWidth: 100 },
   exportBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   alertQty: { color: '#EF4444', fontWeight: '600', fontSize: 12 },
 
   invoiceRow: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingVertical: 12 },
-  invId: { fontWeight: '700', color: '#6366F1' },
+  invId: { fontWeight: '700', color: '#D4AF37' },
   invDate: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
   invAmount: { fontWeight: '700', color: '#1E293B' },
   invGst: { fontSize: 12, color: '#10B981', marginTop: 2, fontWeight: '600' },

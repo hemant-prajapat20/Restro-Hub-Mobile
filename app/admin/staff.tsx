@@ -263,7 +263,7 @@ export default function StaffScreen() {
 
       <ScrollView contentContainerStyle={styles.listContainer}>
         {isLoading ? (
-          <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#D4AF37" style={{ marginTop: 40 }} />
         ) : filteredCrew.length === 0 ? (
           <Text style={styles.emptyText}>No staff members found.</Text>
         ) : (
@@ -416,11 +416,11 @@ export default function StaffScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   headerBox: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 12 },
-  iconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 48, height: 48, backgroundColor: '#FFFBEB', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   iconText: { fontSize: 24 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   headerSub: { fontSize: 12, color: '#64748B', fontWeight: '500' },
-  addBtn: { backgroundColor: '#6366F1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  addBtn: { backgroundColor: '#D4AF37', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   addBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
   searchBox: { paddingHorizontal: 20, marginBottom: 12 },
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   tabsWrapper: { marginBottom: 16 },
   tabsScroll: { paddingHorizontal: 20, gap: 8 },
   tabBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#fff' },
-  tabBtnActive: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
+  tabBtnActive: { backgroundColor: '#D4AF37', borderColor: '#D4AF37' },
   tabLabel: { fontSize: 13, fontWeight: '700', color: '#475569' },
   tabLabelActive: { color: '#fff' },
 
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   avatar: { width: 48, height: 48, borderRadius: 24 },
   avatarFallback: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
   staffName: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  staffRole: { fontSize: 12, color: '#6366F1', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  staffRole: { fontSize: 12, color: '#D4AF37', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
   scorePill: { backgroundColor: '#FFFBEB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   scoreText: { color: '#D97706', fontSize: 12, fontWeight: '800' },
 
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, padding: 12, fontSize: 14, color: '#0F172A', backgroundColor: '#F8FAFC' },
   
   imagePickerRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 8 },
-  imgPreviewBox: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  imgPreviewBox: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFBEB', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   previewImg: { width: '100%', height: '100%' },
   imgBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' },
   imgBtnText: { fontSize: 12, fontWeight: '700', color: '#475569' },
@@ -475,6 +475,6 @@ const styles = StyleSheet.create({
   modalFooter: { flexDirection: 'row', padding: 20, gap: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9', backgroundColor: '#fff' },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' },
   cancelBtnText: { color: '#475569', fontWeight: '800', fontSize: 14 },
-  saveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#6366F1', alignItems: 'center' },
+  saveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#D4AF37', alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });

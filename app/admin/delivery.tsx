@@ -239,8 +239,8 @@ export default function DeliveryScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Text style={styles.orderId}>{order.id}</Text>
                     <Text style={styles.orderTime}>{order.time} • {order.date}</Text>
-                    <View style={[styles.payBadge, order.paymentMethod === 'Online' ? { backgroundColor: '#EEF2FF' } : { backgroundColor: '#ECFDF5' }]}>
-                      <Text style={[styles.payText, order.paymentMethod === 'Online' ? { color: '#4F46E5' } : { color: '#059669' }]}>{order.paymentMethod}</Text>
+                    <View style={[styles.payBadge, order.paymentMethod === 'Online' ? { backgroundColor: '#FFFBEB' } : { backgroundColor: '#ECFDF5' }]}>
+                      <Text style={[styles.payText, order.paymentMethod === 'Online' ? { color: '#D4AF37' } : { color: '#059669' }]}>{order.paymentMethod}</Text>
                     </View>
                   </View>
                   <Text style={styles.orderItems} numberOfLines={2}>{order.itemsStr}</Text>
@@ -408,7 +408,7 @@ export default function DeliveryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  iconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 48, height: 48, backgroundColor: '#FFFBEB', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   headerSub: { fontSize: 12, color: '#64748B', fontWeight: '500' },
   addBtn: { backgroundColor: '#0F172A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   menuItemName: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
   menuItemPrice: { fontSize: 10, color: '#64748B', fontWeight: '800' },
-  menuItemQty: { fontSize: 12, fontWeight: '800', color: '#6366F1' },
+  menuItemQty: { fontSize: 12, fontWeight: '800', color: '#D4AF37' },
   menuAddBtn: { backgroundColor: '#0F172A', padding: 8, borderRadius: 8 },
 
   modalFooter: { flexDirection: 'row', padding: 20, gap: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9', backgroundColor: '#fff' },
