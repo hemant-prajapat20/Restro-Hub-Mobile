@@ -241,7 +241,7 @@ export default function SettingsScreen() {
             <Switch
               value={isStoreOpen}
               onValueChange={handleToggleStore}
-              trackColor={{ false: '#CBD5E1', true: '#6366F1' }}
+              trackColor={{ false: '#CBD5E1', true: '#D4AF37' }}
               thumbColor={'#ffffff'}
             />
           </View>
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                 <Switch
                   value={features[item.key as keyof typeof features]}
                   onValueChange={() => toggleFeature(item.key as keyof typeof features)}
-                  trackColor={{ false: '#CBD5E1', true: '#6366F1' }}
+                  trackColor={{ false: '#CBD5E1', true: '#D4AF37' }}
                   thumbColor={'#ffffff'}
                 />
               </View>
@@ -288,7 +288,7 @@ export default function SettingsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
             <TouchableOpacity style={styles.addMediaBtn} onPress={() => pickImage('hotel')}>
               {isUploadingHotel ? (
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color="#D4AF37" />
               ) : (
                 <Text style={styles.addMediaIcon}>+</Text>
               )}
@@ -313,7 +313,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   headerBox: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 12 },
-  iconBox: { width: 48, height: 48, backgroundColor: '#EEF2FF', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 48, height: 48, backgroundColor: '#FFFBEB', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   iconText: { fontSize: 24 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   headerSub: { fontSize: 12, color: '#64748B', fontWeight: '500' },
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1 },
   profileName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   profileEmail: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  profileRole: { fontSize: 11, color: '#6366F1', fontWeight: '800', textTransform: 'uppercase', marginTop: 4, backgroundColor: '#EEF2FF', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  profileRole: { fontSize: 11, color: '#D4AF37', fontWeight: '800', textTransform: 'uppercase', marginTop: 4, backgroundColor: '#FFFBEB', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   
   outlineBtn: { borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
   outlineBtnText: { fontSize: 13, fontWeight: '700', color: '#475569' },
