@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Image, Vibration } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -27,10 +27,10 @@ export default function CustomerLayout() {
   useEffect(() => {
     // Connect to backend websocket
     // Configure Audio to play even in silent mode
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      playThroughEarpieceAndroid: false
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      shouldRouteThroughEarpiece: false
     });
 
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -41,10 +41,8 @@ export default function CustomerLayout() {
         refetchNotifications();
         try {
           Vibration.vibrate();
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg' }
-          );
-          await sound.playAsync();
+          const player = createAudioPlayer('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+          player.play();
         } catch (e) {
           console.log('Sound error:', e);
         }

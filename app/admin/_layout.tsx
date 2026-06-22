@@ -87,8 +87,8 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const toggles = user?.businessData?.featureToggles || {};
 
   const filteredNavItems = businessNavItems.filter(item => {
-    if (item.platform && !userPlatforms.includes(item.platform)) return false;
     if (item.id === 'restro' && toggles.restaurant === false) return false;
+    if (item.id === 'bar' && toggles.bar === false) return false;
     if (item.id === 'cafe' && toggles.cafe === false) return false;
     if (item.id === 'delivery' && toggles.onlineOrders === false) return false;
     if (item.id === 'tables' && toggles.reservations === false) return false;

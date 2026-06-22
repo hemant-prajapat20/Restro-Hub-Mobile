@@ -232,8 +232,12 @@ export default function AdminDashboard() {
           staff.map((member: any, i: number) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#D4AF37', fontWeight: 'bold' }}>{member.name.charAt(0)}</Text>
+                <View style={styles.staffAvatar}>
+                  {member.image && !member.image.includes('.svg') ? (
+                    <Image source={{ uri: member.image }} style={styles.staffAvatarImage} />
+                  ) : (
+                    <Text style={styles.staffAvatarFallback}>{member.name.charAt(0)}</Text>
+                  )}
                 </View>
                 <View>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{member.name}</Text>
@@ -546,8 +550,10 @@ const styles = StyleSheet.create({
   staffLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   staffAvatar: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFBEB',
-    borderWidth: 2, borderColor: '#fff',
+    overflow: 'hidden',
   },
+  staffAvatarImage: { width: '100%', height: '100%' },
+  staffAvatarFallback: { flex:1, alignItems: 'center', justifyContent: 'center' },
   staffName: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
   staffRole: { fontSize: 11, color: '#64748B' },
   staffStatusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },

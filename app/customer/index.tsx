@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, PanResponder, Dimensions } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -183,15 +183,30 @@ export default function CustomerDashboard() {
         <Ionicons name="arrow-back" size={20} color="#1E293B" />
       </TouchableOpacity>
       <ScrollView showsVerticalScrollIndicator={false} {...panResponder.panHandlers}>
-        {/* Header Image */}
+        {/* Header Image Gallery */}
         <View style={styles.headerImageContainer}>
           {businessInfo.hotelImages && businessInfo.hotelImages.length > 0 ? (
-            <Image source={{ uri: businessInfo.hotelImages[0] }} style={styles.headerImage} />
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+              {businessInfo.hotelImages.map((uri: string, idx: number) => (
+                <View key={idx} style={{ width: Dimensions.get('window').width, height: '100%' }}>
+                  <Image source={{ uri }} style={styles.headerImage} />
+                </View>
+              ))}
+            </ScrollView>
           ) : businessInfo.logoUrl ? (
             <Image source={{ uri: businessInfo.logoUrl }} style={styles.headerImage} />
           ) : (
             <View style={styles.placeholderHeader}>
               <Ionicons name="restaurant" size={60} color="#D4AF37" style={{ opacity: 0.5 }} />
+            </View>
+          )}
+          
+          {/* Pagination Indicators */}
+          {businessInfo.hotelImages && businessInfo.hotelImages.length > 1 && (
+            <View style={styles.galleryIndicators}>
+              {businessInfo.hotelImages.map((_: any, idx: number) => (
+                <View key={idx} style={styles.galleryDot} />
+              ))}
             </View>
           )}
         </View>
@@ -530,6 +545,21 @@ const styles = StyleSheet.create({
     height: 220,
     backgroundColor: '#F8FAFC',
     position: 'relative',
+  },
+  galleryIndicators: {
+    position: 'absolute',
+    bottom: 12,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  galleryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.8,
   },
   headerImage: {
     width: '100%',

@@ -9,7 +9,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  TextInput
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -27,6 +28,8 @@ export default function SettingsScreen() {
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingHotel, setIsUploadingHotel] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // New state for editing contact phone number
+  const [contactPhone, setContactPhone] = useState(user?.businessData?.contactPhone ?? '');
 
   const fetchProfile = async () => {
     try {
@@ -195,6 +198,50 @@ export default function SettingsScreen() {
     }
   };
 
+  // Remove a hotel image at given index
+  const handleRemoveHotelImage = async (index: number) => {
+    const currentImages = user?.businessData?.hotelImages || [];
+    const newImages = currentImages.filter((_, i) => i !== index);
+    try {
+      const putRes = await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
+      const updatedBusiness = putRes.data?.data || {};
+      const updatedUser = { ...user, businessData: updatedBusiness } as any;
+      dispatch(setCredentials({ user: updatedUser, token: token || '' }));
+      await fetchProfile();
+    } catch (err) {
+      console.log('Remove hotel image error', err);
+      Alert.alert('Error', 'Failed to remove image');
+    }
+  };
+
+  // Set a hotel image as the main (first) image
+  const handleSetMainHotelImage = async (index: number) => {
+    const currentImages = user?.businessData?.hotelImages || [];
+    if (index === 0) return; // already main
+    const newImages = [currentImages[index], ...currentImages.filter((_, i) => i !== index)];
+    try {
+      const putRes = await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
+      const updatedBusiness = putRes.data?.data || {};
+      const updatedUser = { ...user, businessData: updatedBusiness } as any;
+      dispatch(setCredentials({ user: updatedUser, token: token || '' }));
+      await fetchProfile();
+    } catch (err) {
+      console.log('Set main image error', err);
+      Alert.alert('Error', 'Failed to set main image');
+    }
+  };
+
+  const handleSaveContactPhone = async () => {
+    try {
+      await api.put('/businesses/me/phone', { contactPhone: contactPhone });
+      const updatedUser = { ...user, businessData: { ...user?.businessData, contactPhone: contactPhone } } as any;
+      dispatch(setCredentials({ user: updatedUser, token: token || '' }));
+      Alert.alert('Success', 'Phone number updated');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update phone number');
+    }
+  };
+
   const handleRemoveProfile = async () => {
     try {
       await api.put('/auth/profile/photo', { profilePhoto: null });
@@ -285,7 +332,18 @@ export default function SettingsScreen() {
           
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Contact Phone</Text>
-            <Text style={styles.detailValue}>{user?.phone || user?.businessData?.contactPhone || 'N/A'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                style={styles.phoneInput}
+                value={contactPhone}
+                onChangeText={setContactPhone}
+                keyboardType="phone-pad"
+                placeholder="Enter contact phone"
+              />
+              <TouchableOpacity style={styles.savePhoneBtn} onPress={handleSaveContactPhone}>
+                <Text style={styles.savePhoneText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           <View style={styles.detailRow}>
@@ -374,7 +432,14 @@ export default function SettingsScreen() {
             {hotelImages.map((uri: string, i: number) => (
               <View key={i} style={styles.hotelImageWrapper}>
                 <Image source={{ uri }} style={styles.hotelImage} />
-
+                {/* Delete button */}
+                <TouchableOpacity style={styles.removeImageBtn} onPress={() => handleRemoveHotelImage(i)}>
+                  <Text style={styles.removeImageText}>✖</Text>
+                </TouchableOpacity>
+                {/* Set as main button */}
+                <TouchableOpacity style={styles.setMainBtn} onPress={() => handleSetMainHotelImage(i)}>
+                  <Text style={styles.setMainText}>★</Text>
+                </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
@@ -420,10 +485,15 @@ const styles = StyleSheet.create({
   settingLabel: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
   settingDesc: { fontSize: 11, color: '#64748B', fontWeight: '500' },
 
-  addMediaBtn: { width: 100, height: 100, borderRadius: 12, borderWidth: 2, borderColor: '#E2E8F0', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginRight: 12, backgroundColor: '#F8FAFC' },
+  addMediaBtn: { width: 100, height: 100, borderRadius: 12, borderWidth: 2, borderColor: '#E2E8E0', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginRight: 12, backgroundColor: '#F8FAFC' },
   addMediaIcon: { fontSize: 24, color: '#94A3B8' },
   hotelImageWrapper: { position: 'relative', marginRight: 12 },
   hotelImage: { width: 100, height: 100, borderRadius: 12 },
   removeImageBtn: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   removeImageText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  setMainBtn: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(255,215,0,0.7)', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  setMainText: { color: '#000', fontSize: 12, fontWeight: '800' },
+  phoneInput: { flex: 1, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 8 },
+  savePhoneBtn: { backgroundColor: '#D4AF37', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  savePhoneText: { color: '#fff', fontWeight: '600' },
 });
