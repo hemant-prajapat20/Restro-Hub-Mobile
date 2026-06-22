@@ -63,9 +63,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background Theme Split */}
-      <View style={styles.topBackground} />
-      <View style={styles.bottomBackground} />
+      {/* Single Unified Background */}
 
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
@@ -122,7 +120,7 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#6366F1" />
+                <ActivityIndicator color="#000000" />
               ) : (
                 <Text style={styles.buttonText}>SECURE LOGIN</Text>
               )}
@@ -141,7 +139,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F8FAFC',
   },
   topBackground: {
     position: 'absolute',
@@ -149,7 +147,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '45%',
-    backgroundColor: '#111111',
+    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     borderBottomWidth: 1,
@@ -161,7 +159,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '55%',
-    backgroundColor: '#000000',
+    backgroundColor: '#F8FAFC',
   },
   keyboardView: {
     flex: 1,
@@ -197,14 +195,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     letterSpacing: -0.5,
   },
   titleAccent: {
     color: '#D4AF37',
   },
   card: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -212,17 +210,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 15,
     elevation: 8,
-    borderColor: '#333333',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   subtitleText: {
     fontSize: 14,
-    color: '#A3A3A3',
+    color: '#64748B',
     marginTop: 4,
     marginBottom: 24,
   },
@@ -243,14 +241,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#262626',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: '#CBD5E1',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   button: {
     backgroundColor: '#D4AF37',
