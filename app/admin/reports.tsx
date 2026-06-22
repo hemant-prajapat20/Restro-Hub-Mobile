@@ -140,6 +140,39 @@ export default function ReportsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Month Selector ── */}
+      <View style={{ marginBottom: 20 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4, gap: 10 }}>
+          {['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'].map((m) => {
+            const isSelected = month === m;
+            const date = new Date(`${m}-01`);
+            const label = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            return (
+              <TouchableOpacity 
+                key={m}
+                onPress={() => setMonth(m)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 20,
+                  backgroundColor: isSelected ? '#D4AF37' : '#F1F5F9',
+                  borderWidth: 1,
+                  borderColor: isSelected ? '#D4AF37' : '#E2E8F0'
+                }}
+              >
+                <Text style={{ 
+                  color: isSelected ? '#FFFFFF' : '#475569', 
+                  fontWeight: isSelected ? '700' : '500',
+                  fontSize: 13
+                }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* ── KPI Stat Cards ── */}
       <View style={styles.statsRow}>
         <StatCard title="Net Revenue" value={`₹${netRevenue.toLocaleString()}`} subValue="vs last month" trend={15.2} icon="📊" bgColor="#EFF6FF" />

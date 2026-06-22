@@ -61,6 +61,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [graphPeriod, setGraphPeriod] = useState<'Today' | 'This Week'>('Today');
 
   const fetchDashboard = async () => {
     try {
@@ -113,7 +114,13 @@ export default function AdminDashboard() {
     topItems = [],
     aiInsights = [],
     moduleAnalytics = [],
+    salesData = [],
+    weeklySalesData = []
   } = analytics || {};
+
+  const currentGraphData = graphPeriod === 'Today' ? salesData : weeklySalesData;
+  const graphLabels = currentGraphData?.length > 0 ? currentGraphData.map((d: any) => d.name) : ["N/A"];
+  const graphValues = currentGraphData?.length > 0 ? currentGraphData.map((d: any) => d.sales) : [0];
 
   return (
     <ScrollView
@@ -162,15 +169,34 @@ export default function AdminDashboard() {
 
       {/* ── Revenue Velocity Chart ── */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Revenue Velocity</Text>
-        <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>Live sales performance across day parts</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <View>
+            <Text style={styles.sectionTitle}>Revenue Velocity</Text>
+            <Text style={{ fontSize: 12, color: '#64748B' }}>Live sales performance</Text>
+          </View>
+          <View style={{ flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 8, padding: 2 }}>
+            <TouchableOpacity 
+              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: graphPeriod === 'Today' ? '#fff' : 'transparent', borderRadius: 6 }}
+              onPress={() => setGraphPeriod('Today')}
+            >
+              <Text style={{ fontSize: 12, fontWeight: graphPeriod === 'Today' ? '700' : '500', color: graphPeriod === 'Today' ? '#0F172A' : '#64748B' }}>Today</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: graphPeriod === 'This Week' ? '#fff' : 'transparent', borderRadius: 6 }}
+              onPress={() => setGraphPeriod('This Week')}
+            >
+              <Text style={{ fontSize: 12, fontWeight: graphPeriod === 'This Week' ? '700' : '500', color: graphPeriod === 'This Week' ? '#0F172A' : '#64748B' }}>This Week</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <LineChart
             data={{
-              labels: ["8am", "12pm", "4pm", "8pm", "12am"],
-              datasets: [{ data: [1200, 5500, 3200, 9800, 3100] }]
+              labels: graphLabels,
+              datasets: [{ data: graphValues }]
             }}
-            width={Dimensions.get("window").width - 48}
+            width={Math.max(Dimensions.get("window").width - 48, graphLabels.length * 50)}
             height={220}
             yAxisLabel="₹"
             yAxisSuffix=""
@@ -179,7 +205,7 @@ export default function AdminDashboard() {
               backgroundGradientFrom: "#ffffff",
               backgroundGradientTo: "#ffffff",
               decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+              color: (opacity = 1) => `rgba(212, 175, 55, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
               style: { borderRadius: 16 },
               propsForDots: { r: "4", strokeWidth: "2", stroke: "#D4AF37" }
@@ -231,13 +257,16 @@ export default function AdminDashboard() {
           <View style={{ marginTop: 24 }}>
             <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative', height: 180 }}>
               <PieChart
-                data={categoryData.slice(0, 5).map((c: any) => ({
-                  name: c.name,
-                  population: c.value,
-                  color: c.color || '#' + Math.floor(Math.random() * 16777215).toString(16),
-                  legendFontColor: '#64748B',
-                  legendFontSize: 12
-                }))}
+                data={categoryData.slice(0, 5).map((c: any, i: number) => {
+                  const themeColors = ['#D4AF37', '#0F172A', '#F59E0B', '#64748B', '#FCD34D'];
+                  return {
+                    name: c.name,
+                    population: c.value,
+                    color: themeColors[i % themeColors.length],
+                    legendFontColor: '#64748B',
+                    legendFontSize: 12
+                  };
+                })}
                 width={Dimensions.get("window").width - 48}
                 height={180}
                 chartConfig={{
@@ -255,15 +284,18 @@ export default function AdminDashboard() {
 
             {/* Custom Legend */}
             <View style={{ marginTop: 24, gap: 16 }}>
-              {categoryData.slice(0, 5).map((cat: any, i: number) => (
+              {categoryData.slice(0, 5).map((cat: any, i: number) => {
+                  const themeColors = ['#D4AF37', '#0F172A', '#F59E0B', '#64748B', '#FCD34D'];
+                  return (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: cat.color || '#D4AF37' }} />
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: themeColors[i % themeColors.length] }} />
                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569' }}>{cat.name}</Text>
                   </View>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{cat.value}%</Text>
                 </View>
-              ))}
+              );
+              })}
             </View>
           </View>
         ) : (

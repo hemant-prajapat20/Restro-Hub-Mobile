@@ -200,7 +200,17 @@ export default function CustomerDashboard() {
         <View style={styles.businessInfo}>
           <Text style={styles.businessName}>{businessInfo.name}</Text>
           <Text style={styles.businessAddress}>{businessInfo.address}, {businessInfo.district}</Text>
-          <View style={styles.infoRow}>
+          
+          {businessInfo.contactPhone && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <Ionicons name="call" size={14} color="#64748B" />
+              <Text style={{ fontSize: 13, color: '#64748B', marginLeft: 4, fontWeight: '500' }}>
+                {businessInfo.contactPhone}
+              </Text>
+            </View>
+          )}
+
+          <View style={[styles.infoRow, { marginTop: 12 }]}>
             <View style={styles.infoRow}>
                 <View style={styles.ratingBadge}>
                   <Ionicons name="star" size={14} color="#16A34A" />
