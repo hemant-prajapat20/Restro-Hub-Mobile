@@ -98,7 +98,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#D4AF37" />
         <Text style={styles.loadingText}>Loading Dashboard...</Text>
       </View>
     );
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6366F1']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D4AF37']} />}
     >
       {/* ── KPI Stat Cards (same 4 as web) ── */}
       <View style={styles.statsRow}>
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
               color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
               style: { borderRadius: 16 },
-              propsForDots: { r: "4", strokeWidth: "2", stroke: "#4F46E5" }
+              propsForDots: { r: "4", strokeWidth: "2", stroke: "#D4AF37" }
             }}
             bezier
             style={{ marginVertical: 8, borderRadius: 16 }}
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
             <Text style={{ fontSize: 12, color: '#64748B' }}>Currently clocked in members</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/admin/staff')}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: '#6366F1', textTransform: 'uppercase', letterSpacing: 1 }}>View All</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#D4AF37', textTransform: 'uppercase', letterSpacing: 1 }}>View All</Text>
           </TouchableOpacity>
         </View>
 
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#4F46E5', fontWeight: 'bold' }}>{member.name.charAt(0)}</Text>
+                  <Text style={{ color: '#D4AF37', fontWeight: 'bold' }}>{member.name.charAt(0)}</Text>
                 </View>
                 <View>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E293B' }}>{member.name}</Text>
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                 </View>
                 <Text style={styles.topItemRevenue}>{item.revenue}</Text>
               </View>
-              <ProgressBar progress={item.progress || 0} color="#6366F1" />
+              <ProgressBar progress={item.progress || 0} color="#D4AF37" />
             </View>
           ))
         ) : (
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
             return (
               <TouchableOpacity key={i} style={styles.tableRow} onPress={() => setSelectedInvoice(order)}>
                 <View style={{ flex: 2 }}>
-                  <Text style={[styles.billId, { color: '#4F46E5' }]}>#{shortId}</Text>
+                  <Text style={[styles.billId, { color: '#D4AF37' }]}>#{shortId}</Text>
                   <Text style={styles.billDate}>
                     {new Date(order.createdAt || order.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                   </Text>
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={{ fontSize: 12, color: '#64748B' }}>Module</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#4F46E5' }}>{selectedInvoice.type}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#D4AF37' }}>{selectedInvoice.type}</Text>
                     </View>
                   </View>
 
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                     )}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
                       <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>Total Paid</Text>
-                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#4F46E5' }}>₹{(selectedInvoice.total || selectedInvoice.amount || 0).toLocaleString()}</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#D4AF37' }}>₹{(selectedInvoice.total || selectedInvoice.amount || 0).toLocaleString()}</Text>
                     </View>
                   </View>
                 </View>
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: 16 },
   sectionSubtitle: { fontSize: 12, color: '#64748B', marginTop: -12, marginBottom: 16 },
-  viewAllBtn: { fontSize: 10, fontWeight: '700', color: '#6366F1', letterSpacing: 1.5 },
+  viewAllBtn: { fontSize: 10, fontWeight: '700', color: '#D4AF37', letterSpacing: 1.5 },
 
   // Category
   categoryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12,
     borderBottomWidth: 1, borderBottomColor: '#F8FAFC',
   },
-  billId: { fontSize: 13, fontWeight: '700', color: '#6366F1' },
+  billId: { fontSize: 13, fontWeight: '700', color: '#D4AF37' },
   billDate: { fontSize: 9, fontWeight: '600', color: '#94A3B8', marginTop: 2 },
   moduleBadge: { backgroundColor: '#EFF6FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   moduleBadgeText: { fontSize: 9, fontWeight: '800', color: '#2563EB', textTransform: 'uppercase', letterSpacing: 1 },
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   },
   staffLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   staffAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEF2FF',
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFBEB',
     borderWidth: 2, borderColor: '#fff',
   },
   staffName: { fontSize: 13, fontWeight: '700', color: '#0F172A' },

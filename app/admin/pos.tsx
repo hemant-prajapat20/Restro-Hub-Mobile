@@ -161,7 +161,7 @@ export default function POSScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color="#D4AF37" />
       </View>
     );
   }
@@ -399,15 +399,15 @@ const styles = StyleSheet.create({
   
   tabHeader: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   tabBtn: { flex: 1, paddingVertical: 16, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: '#6366F1' },
+  tabBtnActive: { borderBottomColor: '#D4AF37' },
   tabText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  tabTextActive: { color: '#6366F1', fontWeight: '700' },
+  tabTextActive: { color: '#D4AF37', fontWeight: '700' },
 
   filterBar: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   searchInput: { backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, marginBottom: 12, fontSize: 14, color: '#0F172A', fontWeight: '500' },
   categoryScroll: { flexDirection: 'row' },
   categoryBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8 },
-  categoryBadgeActive: { backgroundColor: '#6366F1' },
+  categoryBadgeActive: { backgroundColor: '#D4AF37' },
   categoryText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
   categoryTextActive: { color: '#fff' },
 
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   menuItemName: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 4 },
   menuItemDesc: { fontSize: 11, color: '#64748B', marginBottom: 8 },
   menuItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  menuItemPrice: { fontSize: 15, fontWeight: '700', color: '#6366F1' },
+  menuItemPrice: { fontSize: 15, fontWeight: '700', color: '#D4AF37' },
   addButton: { backgroundColor: '#F1F5F9', width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   addButtonText: { fontSize: 16, color: '#64748B', fontWeight: '800' },
 
@@ -448,13 +448,13 @@ const styles = StyleSheet.create({
   cartTotalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   cartTotalsText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
   cartTotalsValue: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  cartTotalsHighlight: { fontSize: 14, fontWeight: '700', color: '#6366F1' },
+  cartTotalsHighlight: { fontSize: 14, fontWeight: '700', color: '#D4AF37' },
   cartGrandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  cartGrandTotal: { fontSize: 24, fontWeight: '800', color: '#6366F1' },
+  cartGrandTotal: { fontSize: 24, fontWeight: '800', color: '#D4AF37' },
   cartActions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  kotBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 2, borderColor: '#6366F1', alignItems: 'center', justifyContent: 'center' },
-  kotBtnText: { color: '#6366F1', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
-  payBtn: { flex: 2, backgroundColor: '#6366F1', paddingVertical: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#6366F1', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  kotBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 2, borderColor: '#D4AF37', alignItems: 'center', justifyContent: 'center' },
+  kotBtnText: { color: '#D4AF37', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  payBtn: { flex: 2, backgroundColor: '#D4AF37', paddingVertical: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#D4AF37', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   payBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
 
   checkoutCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#E2E8F0' },
@@ -464,12 +464,12 @@ const styles = StyleSheet.create({
   errorText: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: -10, marginBottom: 16, marginLeft: 4 },
   paymentMethodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   paymentMethodBtn: { flex: 1, minWidth: '45%', paddingVertical: 16, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, alignItems: 'center', backgroundColor: '#F8FAFC' },
-  paymentMethodBtnActive: { borderColor: '#6366F1', backgroundColor: '#EEF2FF', borderWidth: 2 },
+  paymentMethodBtnActive: { borderColor: '#D4AF37', backgroundColor: '#FFFBEB', borderWidth: 2 },
   paymentMethodText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
-  paymentMethodTextActive: { color: '#6366F1' },
+  paymentMethodTextActive: { color: '#D4AF37' },
   checkoutSummary: { backgroundColor: '#F8FAFC', padding: 20, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#E2E8F0' },
   checkoutSummaryLabel: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  checkoutSummaryValue: { fontSize: 24, fontWeight: '800', color: '#6366F1' },
+  checkoutSummaryValue: { fontSize: 24, fontWeight: '800', color: '#D4AF37' },
   completePayBtn: { backgroundColor: '#10B981', paddingVertical: 18, borderRadius: 16, alignItems: 'center', shadowColor: '#10B981', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   disabledBtn: { opacity: 0.5 },
   completePayBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
