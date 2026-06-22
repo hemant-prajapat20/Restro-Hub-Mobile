@@ -47,12 +47,12 @@ export default function CheckoutScreen() {
   const businessInfo = businessData?.business || {};
   const addresses = addressesResponse?.data || [];
 
-useEffect(() => {
-  if (addresses.length > 0 && !selectedAddressId) {
-    const defaultAddr = addresses.find((addr: any) => addr.isDefault) || addresses[0];
-    setSelectedAddressId(defaultAddr._id);
-  }
-}, [addresses]);
+  useEffect(() => {
+    if (addresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = addresses.find((addr: any) => addr.isDefault) || addresses[0];
+      setSelectedAddressId(defaultAddr._id);
+    }
+  }, [addresses]);
 
   // Calculate totals — delivery fee & tax rate come from business settings
   const subtotal = cartItems.reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0);
@@ -67,7 +67,7 @@ useEffect(() => {
         amount: totalAmount,
         receipt: `receipt_${Date.now()}`
       });
-      
+
       const orderData = orderRes.data;
       if (orderData.status !== 'success') {
         throw new Error(orderData.message || 'Failed to initialize payment');
@@ -143,7 +143,7 @@ useEffect(() => {
     }
 
     let paymentId = 'COD';
-    
+
     if (paymentMethod === 'Online') {
       try {
         paymentId = await startRazorpayPayment(total);
@@ -155,7 +155,7 @@ useEffect(() => {
             amount: total,
             reason: err.description || err.message || 'User cancelled'
           });
-        } catch (e) {}
+        } catch (e) { }
         return;
       }
     }
@@ -191,7 +191,7 @@ useEffect(() => {
       }
 
       await api.post('/customer-orders/order/' + cartBusinessId, payload);
-      
+
       setShowPaymentModal(false);
       dispatch(clearCart());
       Alert.alert('Success', 'Your order has been placed!', [{ text: 'OK', onPress: () => router.replace('/customer/past_orders') }]);
@@ -230,53 +230,53 @@ useEffect(() => {
         </View>
       </View>
       {addressesLoading ? (
-          <ActivityIndicator size="small" color="#D4AF37" />
-        ) : addresses.length === 0 ? (
-          <View style={styles.emptyAddressContainer}>
-            <Text style={styles.emptyAddressText}>No delivery address saved.</Text>
-            <TouchableOpacity onPress={() => router.push('/customer/saved_addresses')}>
-              <Text style={styles.addAddressLink}>Add Delivery Address</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.addressList}>
-            {isChangingAddress ? (
-              <>
-                {addresses.map((addr: any) => (
-                  <TouchableOpacity 
-                    key={addr._id} 
-                    style={[styles.addressItem, selectedAddressId === addr._id && styles.addressSelected]} 
-                    onPress={() => {
-                      setSelectedAddressId(addr._id);
-                      setIsChangingAddress(false);
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={styles.addressText}>{addr.label || 'Home'}</Text>
-                      {selectedAddressId === addr._id && <Ionicons name="checkmark-circle" size={20} color="#D4AF37" />}
-                    </View>
-                    <Text style={styles.addressSub}>{addr.street}, {addr.city}, {addr.state} {addr.zipCode}</Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity 
-                  style={{ padding: 12, borderWidth: 1, borderColor: '#D4AF37', borderStyle: 'dashed', borderRadius: 8, alignItems: 'center', marginTop: 4, flexDirection: 'row', justifyContent: 'center' }}
-                  onPress={() => router.push('/customer/saved_addresses')}
+        <ActivityIndicator size="small" color="#D4AF37" />
+      ) : addresses.length === 0 ? (
+        <View style={styles.emptyAddressContainer}>
+          <Text style={styles.emptyAddressText}>No delivery address saved.</Text>
+          <TouchableOpacity onPress={() => router.push('/customer/saved_addresses')}>
+            <Text style={styles.addAddressLink}>Add Delivery Address</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.addressList}>
+          {isChangingAddress ? (
+            <>
+              {addresses.map((addr: any) => (
+                <TouchableOpacity
+                  key={addr._id}
+                  style={[styles.addressItem, selectedAddressId === addr._id && styles.addressSelected]}
+                  onPress={() => {
+                    setSelectedAddressId(addr._id);
+                    setIsChangingAddress(false);
+                  }}
                 >
-                  <Ionicons name="add" size={20} color="#D4AF37" style={{ marginRight: 4 }} />
-                  <Text style={{ color: '#D4AF37', fontWeight: '600' }}>Add New Address</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              // Show only selected
-              addresses.filter((a: any) => a._id === selectedAddressId).map((addr: any) => (
-                <View key={addr._id} style={[styles.addressItem, styles.addressSelected]}>
-                  <Text style={styles.addressText}>{addr.label || 'Home'}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.addressText}>{addr.label || 'Home'}</Text>
+                    {selectedAddressId === addr._id && <Ionicons name="checkmark-circle" size={20} color="#D4AF37" />}
+                  </View>
                   <Text style={styles.addressSub}>{addr.street}, {addr.city}, {addr.state} {addr.zipCode}</Text>
-                </View>
-              ))
-            )}
-          </View>
-        )}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={{ padding: 12, borderWidth: 1, borderColor: '#D4AF37', borderStyle: 'dashed', borderRadius: 8, alignItems: 'center', marginTop: 4, flexDirection: 'row', justifyContent: 'center' }}
+                onPress={() => router.push('/customer/saved_addresses')}
+              >
+                <Ionicons name="add" size={20} color="#D4AF37" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#D4AF37', fontWeight: '600' }}>Add New Address</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // Show only selected
+            addresses.filter((a: any) => a._id === selectedAddressId).map((addr: any) => (
+              <View key={addr._id} style={[styles.addressItem, styles.addressSelected]}>
+                <Text style={styles.addressText}>{addr.label || 'Home'}</Text>
+                <Text style={styles.addressSub}>{addr.street}, {addr.city}, {addr.state} {addr.zipCode}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
 
       <View style={styles.cartHeaderRow}>
         <Text style={styles.sectionTitle}>Cart Items</Text>
@@ -331,24 +331,24 @@ useEffect(() => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Complete Your Order</Text>
-            
+
             <Text style={styles.inputLabel}>Name *</Text>
             <TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder="Enter your name" />
-            
+
             <Text style={styles.inputLabel}>Mobile Number *</Text>
             <TextInput style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} placeholder="Enter mobile number" keyboardType="phone-pad" />
-            
+
             <Text style={styles.inputLabel}>Payment Method *</Text>
             <View style={styles.paymentMethodsRowSmall}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.paymentMethodCardSmall, paymentMethod === 'Online' && styles.paymentMethodSelectedSmall]}
                 onPress={() => setPaymentMethod('Online')}
               >
                 <Ionicons name="card" size={20} color={paymentMethod === 'Online' ? '#D4AF37' : '#94A3B8'} />
                 <Text style={[styles.paymentMethodTextSmall, paymentMethod === 'Online' && styles.paymentMethodTextSelectedSmall]}>Online</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.paymentMethodCardSmall, paymentMethod === 'Cash on Delivery' && styles.paymentMethodSelectedSmall]}
                 onPress={() => setPaymentMethod('Cash on Delivery')}
               >
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   emptyText: { fontSize: 18, color: '#64748B', marginBottom: 12 },
   link: { color: '#D4AF37', fontWeight: '600', fontSize: 16 },
-  
+
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24 },
