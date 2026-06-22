@@ -737,7 +737,7 @@ export default function BarLoungeScreen() {
                 </View>
                 <View style={[styles.receiptMetaRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E7E5E4' }]}>
                   <Text style={{ fontWeight: '800', fontSize: 15, color: '#1C1917' }}>TOTAL PAID ({checkoutReceipt?.paymentMethod})</Text>
-                  <Text style={{ fontWeight: '900', fontSize: 18, color: '#8B5CF6' }}>₹{checkoutReceipt?.total?.toFixed(2)}</Text>
+                  <Text style={{ fontWeight: '900', fontSize: 18, color: '#D4AF37' }}>₹{checkoutReceipt?.total?.toFixed(2)}</Text>
                 </View>
               </View>
 
@@ -755,39 +755,39 @@ export default function BarLoungeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
 
-  toast: { position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#8B5CF6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, elevation: 8 },
+  toast: { position: 'absolute', bottom: 100, alignSelf: 'center', backgroundColor: '#D4AF37', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, zIndex: 999, elevation: 8 },
   toastText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
   tabHeader: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   tabBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: '#8B5CF6' },
+  tabBtnActive: { borderBottomColor: '#D4AF37' },
   tabText: { fontWeight: '700', fontSize: 13, color: '#94A3B8' },
-  tabTextActive: { color: '#8B5CF6' },
+  tabTextActive: { color: '#D4AF37' },
 
   topBar: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   searchInput: { backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, marginBottom: 12, fontSize: 14, color: '#0F172A' },
   catBadge: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8 },
-  catBadgeActive: { backgroundColor: '#8B5CF6' },
+  catBadgeActive: { backgroundColor: '#D4AF37' },
   catText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   catTextActive: { color: '#fff' },
 
-  addNewBtn: { backgroundColor: '#F3E8FF', paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#8B5CF6', borderStyle: 'dashed', marginBottom: 16 },
-  addNewBtnText: { color: '#7E22CE', fontSize: 14, fontWeight: '700' },
+  addNewBtn: { backgroundColor: '#FFFBEB', paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D4AF37', borderStyle: 'dashed', marginBottom: 16 },
+  addNewBtnText: { color: '#D4AF37', fontSize: 14, fontWeight: '700' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { width: '48%', backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0' },
   cardImage: { width: '100%', height: 120, resizeMode: 'cover' },
   cardInfo: { padding: 12 },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  catTag: { backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  catTagText: { color: '#7E22CE', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  catTag: { backgroundColor: '#FFFBEB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  catTagText: { color: '#D4AF37', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
   cardName: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
   cardVintage: { fontSize: 10, color: '#64748B', marginBottom: 6 },
   cardStats: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   cardStat: { fontSize: 9, color: '#94A3B8', fontWeight: '600' },
   cardPriceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardPrice: { fontSize: 13, fontWeight: '700', color: '#8B5CF6' },
-  addBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  cardPrice: { fontSize: 13, fontWeight: '700', color: '#D4AF37' },
+  addBtn: { backgroundColor: '#D4AF37', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   addBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   billingTitle: { fontSize: 16, fontWeight: '800', color: '#1C1917', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F4', paddingBottom: 12 },
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
   billingValue: { fontSize: 13, color: '#1C1917', fontWeight: '600' },
   billingTotal: { borderTopWidth: 1, borderTopColor: '#E7E5E4', paddingTop: 12, marginTop: 4, marginBottom: 0 },
   billingTotalLabel: { fontSize: 16, color: '#1C1917', fontWeight: '800' },
-  billingTotalValue: { fontSize: 18, color: '#8B5CF6', fontWeight: '900' },
+  billingTotalValue: { fontSize: 18, color: '#D4AF37', fontWeight: '900' },
 
   discountRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   discountInput: { flex: 1, backgroundColor: '#FAFAF9', borderWidth: 1, borderColor: '#E7E5E4', padding: 12, borderRadius: 8, fontSize: 13, color: '#0F172A' },
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
   formBody: { padding: 20 },
   formLabel: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 },
   formInput: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', padding: 14, borderRadius: 10, fontSize: 14, marginBottom: 16, color: '#0F172A' },
-  saveBtn: { backgroundColor: '#8B5CF6', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 40 },
+  saveBtn: { backgroundColor: '#D4AF37', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 40 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
   receiptOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 16 },
@@ -871,6 +871,6 @@ const styles = StyleSheet.create({
   receiptItemName: { flex: 1, fontSize: 12, color: '#1C1917', fontWeight: '600' },
   receiptItemQty: { fontSize: 12, color: '#78716C', fontWeight: '600', marginHorizontal: 8 },
   receiptItemAmt: { fontSize: 12, color: '#1C1917', fontWeight: '700', minWidth: 60, textAlign: 'right' },
-  receiptCloseBtn: { backgroundColor: '#8B5CF6', margin: 16, padding: 14, borderRadius: 12, alignItems: 'center' },
+  receiptCloseBtn: { backgroundColor: '#D4AF37', margin: 16, padding: 14, borderRadius: 12, alignItems: 'center' },
   receiptCloseBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 });
