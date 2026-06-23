@@ -9,7 +9,8 @@ import {
   RefreshControl,
   Image,
   Dimensions,
-  Modal
+  Modal,
+  InteractionManager
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
@@ -88,7 +89,11 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchDashboard();
+    // Delay fetching until after the navigation animation finishes for smooth transitions
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchDashboard();
+    });
+    return () => task.cancel();
   }, []);
 
   const onRefresh = () => {

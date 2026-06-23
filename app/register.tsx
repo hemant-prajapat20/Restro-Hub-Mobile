@@ -46,10 +46,18 @@ export default function RegisterScreen() {
         token: data.data.token
       }));
 
-      // Redirect to customer portal after successful registration
-      router.replace('/customer');
+      // Role-based routing with slight delay
+      setTimeout(() => {
+        if (data.data.role === 'CUSTOMER') {
+          router.replace('/customer');
+        } else if (data.data.role === 'SUPER_ADMIN') {
+          Alert.alert('Notice', 'Super Admin portal is recommended on Web');
+        } else {
+          router.replace('/admin');
+        }
+      }, 50);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to register. Please try again.');
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, PanResponder, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, PanResponder, Dimensions, InteractionManager } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -18,12 +18,20 @@ export default function CustomerDashboard() {
   const [search, setSearch] = useState('');
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>((params.businessId as string) || null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [isReady, setIsReady] = useState(false);
 
   React.useEffect(() => {
     if (params.businessId) {
       setSelectedBusinessId(params.businessId as string);
     }
   }, [params.businessId]);
+
+  React.useEffect(() => {
+    // Lazy load the entire screen's heavy content after navigation transition finishes
+    InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+  }, []);
 
   // PanResponder for swipe‑right to go back to home
   const panResponder = PanResponder.create({
@@ -70,6 +78,15 @@ export default function CustomerDashboard() {
     activeCategory === 'All' || item.category === activeCategory
   );
   const totalCartItems = cartState.items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Lazy load spinner while transition is happening
+  if (!isReady) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+      </View>
+    );
+  }
 
   // ====== RENDER RESTAURANTS LIST (HOME) ======
   if (!selectedBusinessId) {

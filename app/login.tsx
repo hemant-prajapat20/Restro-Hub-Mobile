@@ -46,14 +46,16 @@ export default function LoginScreen() {
         token: data.data.token
       }));
 
-      // Role-based routing
-      if (data.data.role === 'CUSTOMER') {
-        router.replace('/customer'); // We will build this next
-      } else if (data.data.role === 'SUPER_ADMIN') {
-        Alert.alert('Notice', 'Super Admin portal is recommended on Web');
-      } else {
-        router.replace('/admin');
-      }
+      // Role-based routing with slight delay for smooth transition and interaction clearing
+      setTimeout(() => {
+        if (data.data.role === 'CUSTOMER') {
+          router.replace('/customer');
+        } else if (data.data.role === 'SUPER_ADMIN') {
+          Alert.alert('Notice', 'Super Admin portal is recommended on Web');
+        } else {
+          router.replace('/admin');
+        }
+      }, 50);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
     } finally {

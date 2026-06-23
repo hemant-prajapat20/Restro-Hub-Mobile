@@ -4,8 +4,21 @@ import { Provider } from 'react-redux';
 import { store } from '../store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GlobalStateProvider } from './admin/context/GlobalState';
+
+// Initialize QueryClient outside the component to prevent recreation on every render.
+// Configured with 5-minute staleTime for aggressive caching and faster transitions.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+      gcTime: 1000 * 60 * 15,   // Keep unused data in memory for 15 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 export default function RootLayout() {
-  const queryClient = new QueryClient();
   return (
     <Provider store={store}>
       <GlobalStateProvider>
