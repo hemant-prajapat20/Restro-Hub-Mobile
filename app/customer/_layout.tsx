@@ -44,7 +44,7 @@ export default function CustomerLayout() {
           const player = createAudioPlayer('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
           player.play();
         } catch (e) {
-          console.log('Sound error:', e);
+
         }
       }
     });

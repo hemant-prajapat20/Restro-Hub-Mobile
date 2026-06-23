@@ -54,7 +54,7 @@ export default function KDSScreen() {
       setOrders(activeOrders);
       setSettings(settingsRes.data.data || settingsRes.data);
     } catch (e) {
-      console.log('Error fetching KDS data', e);
+
     } finally {
       setIsLoading(false);
     }

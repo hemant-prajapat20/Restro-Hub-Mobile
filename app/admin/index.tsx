@@ -81,7 +81,7 @@ export default function AdminDashboard() {
           .slice(0, 5)
       );
     } catch (err) {
-      console.log('Dashboard fetch error:', err);
+
     } finally {
       setLoading(false);
       setRefreshing(false);

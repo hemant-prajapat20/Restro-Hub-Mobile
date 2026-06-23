@@ -49,7 +49,7 @@ export default function InventoryScreen() {
       const res = await api.get('/inventory');
       setInventoryList(res.data);
     } catch (e) {
-      console.log('Error fetching inventory', e);
+
     } finally {
       setIsLoading(false);
     }

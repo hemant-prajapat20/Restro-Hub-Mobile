@@ -30,7 +30,7 @@ export default function CustomersScreen() {
       const res = await api.get('/customers');
       setTransactions(res.data);
     } catch (e) {
-      console.log('Error fetching customers', e);
+
     } finally {
       setIsLoading(false);
     }

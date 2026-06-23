@@ -36,7 +36,7 @@ export default function POSScreen() {
       const response = await api.get('/menu');
       setMenuItems(response.data);
     } catch (err) {
-      console.log('Failed to fetch menu:', err);
+
     } finally {
       setLoading(false);
     }

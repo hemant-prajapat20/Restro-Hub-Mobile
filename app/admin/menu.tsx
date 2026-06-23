@@ -3,14 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
   Modal,
   Alert,
   Image,
-  Switch
+  Switch,
+  FlatList
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../utils/api';
@@ -41,7 +41,7 @@ export default function MenuScreen() {
       const res = await api.get('/menu');
       setMenuItems(res.data.data || res.data);
     } catch (e) {
-      console.log('Error fetching menu', e);
+
     } finally {
       setIsLoading(false);
     }
@@ -228,9 +228,17 @@ export default function MenuScreen() {
       {isLoading ? (
         <ActivityIndicator size="large" color="#C5A059" style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.grid}>
-          {filteredItems.map(item => (
-            <View key={item._id} style={styles.card}>
+        <FlatList
+          data={filteredItems}
+          keyExtractor={item => item._id}
+          numColumns={2}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
               <View style={styles.cardImgContainer}>
                 <Image source={{ uri: item.image || 'https://via.placeholder.com/150' }} style={styles.cardImg} />
                 <View style={[styles.vegBadge, { backgroundColor: item.isVeg ? '#10B981' : '#EF4444' }]}>
@@ -264,9 +272,8 @@ export default function MenuScreen() {
                 </View>
               </View>
             </View>
-          ))}
-          <View style={{height: 100}} />
-        </ScrollView>
+          )}
+        />
       )}
 
       {/* Dish Modal */}

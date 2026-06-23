@@ -337,7 +337,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
         pdr: extractArray(pdrRes)
       });
     } catch (err) {
-      console.log('Search prefetch error:', err);
+
     } finally {
       if (query.length < 2) setLoading(false);
     }
@@ -473,7 +473,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
           setNotifications(res.data.data);
         }
       } catch (err) {
-        console.log('Failed to load notifications', err);
+
       }
     };
     fetchNotifications();

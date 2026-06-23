@@ -24,7 +24,7 @@ export default function TransactionsScreen() {
       const response = await api.get('/orders');
       setOrders(response.data || []);
     } catch (err) {
-      console.log('Failed to fetch orders', err);
+
     } finally {
       setIsLoading(false);
     }

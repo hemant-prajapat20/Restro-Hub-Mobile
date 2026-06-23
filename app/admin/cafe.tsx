@@ -100,7 +100,7 @@ export default function CafeScreen() {
       const res = await api.get('/tables');
       setTables(res.data);
     } catch (e) {
-      console.log('Error fetching tables', e);
+
     }
   };
 
@@ -110,7 +110,7 @@ export default function CafeScreen() {
       const res = await api.get('/cafebakery/items');
       setItems(res.data.map((i: any) => ({ ...i, id: i._id })));
     } catch (e) {
-      console.log('Error fetching cafe items', e);
+
     } finally {
       setIsLoading(false);
     }

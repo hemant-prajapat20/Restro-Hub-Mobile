@@ -69,7 +69,7 @@ export default function DeliveryScreen() {
       }));
       setDeliveryOrders(mapped);
     } catch (e) {
-      console.log('Error fetching delivery orders', e);
+
     } finally {
       setIsLoading(false);
     }

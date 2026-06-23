@@ -81,7 +81,7 @@ export default function TablesScreen() {
       setDbOrders(oRes.data.filter((o: any) => o.status !== 'Completed' && o.status !== 'Cancelled' && o.type !== 'Delivery'));
       setReservations(rRes.data.data || rRes.data);
     } catch (e) {
-      console.log('Error fetching table data', e);
+
     } finally {
       setIsLoading(false);
     }

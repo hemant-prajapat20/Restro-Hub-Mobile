@@ -35,7 +35,7 @@ export const AppDataProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get('/menu');
       setMenuItems(res.data);
     } catch (e) {
-      console.log('Failed to fetch menu', e);
+
     }
   };
 
@@ -44,7 +44,7 @@ export const AppDataProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get('/staff');
       setStaffMembers(res.data);
     } catch (e) {
-      console.log('Failed to fetch staff', e);
+
     }
   };
 
@@ -53,7 +53,7 @@ export const AppDataProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get('/customers');
       setCustomers(res.data);
     } catch (e) {
-      console.log('Failed to fetch customers', e);
+
     }
   };
 
@@ -62,7 +62,7 @@ export const AppDataProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get('/transactions');
       setTransactions(res.data);
     } catch (e) {
-      console.log('Failed to fetch transactions', e);
+
     }
   };
 
@@ -71,7 +71,7 @@ export const AppDataProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get('/messages');
       setMessages(res.data);
     } catch (e) {
-      console.log('Failed to fetch messages', e);
+
     }
   };
 

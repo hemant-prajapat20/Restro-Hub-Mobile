@@ -152,7 +152,7 @@ export default function SettingsScreen() {
       }));
       Alert.alert('Success', 'Profile photo updated');
     } catch (err) {
-      console.log('Profile upload error', err);
+
       Alert.alert('Error', 'Failed to update profile photo');
     } finally {
       setIsUploadingProfile(false);
@@ -172,16 +172,16 @@ export default function SettingsScreen() {
       const uploadRes = await api.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      console.log('Upload response:', uploadRes.data);
+
       const imageUrl = uploadRes.data.url;
-      console.log('Uploaded image URL:', imageUrl);
+
       
       const currentImages = user?.businessData?.hotelImages || [];
       const newImages = [...currentImages, imageUrl];
-      console.log('New hotel images array to send:', newImages);
+
       
       const putRes = await api.put('/businesses/me/hotel-images', { hotelImages: newImages });
-      console.log('PUT hotel images response:', putRes.data);
+
       // Update Redux store with the fresh business data from the PUT response
       const updatedBusiness = putRes.data?.data || {};
       const updatedUser = { ...user, businessData: updatedBusiness } as any;
@@ -191,7 +191,7 @@ export default function SettingsScreen() {
       // await fetchProfile();
 
     } catch (err) {
-      console.log('Hotel upload error', err);
+
       Alert.alert('Error', 'Failed to upload hotel picture');
     } finally {
       setIsUploadingHotel(false);
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
       dispatch(setCredentials({ user: updatedUser, token: token || '' }));
       await fetchProfile();
     } catch (err) {
-      console.log('Remove hotel image error', err);
+
       Alert.alert('Error', 'Failed to remove image');
     }
   };
@@ -226,7 +226,7 @@ export default function SettingsScreen() {
       dispatch(setCredentials({ user: updatedUser, token: token || '' }));
       await fetchProfile();
     } catch (err) {
-      console.log('Set main image error', err);
+
       Alert.alert('Error', 'Failed to set main image');
     }
   };

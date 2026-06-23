@@ -86,7 +86,7 @@ export default function StaffScreen() {
       setCategories(catRes.data || []);
       if (!newRole && catRes.data?.length > 0) setNewRole(catRes.data[0]);
     } catch (e) {
-      console.log('Error fetching staff data', e);
+
     } finally {
       setIsLoading(false);
     }

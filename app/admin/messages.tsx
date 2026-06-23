@@ -44,7 +44,7 @@ export default function MessageCenterScreen() {
       const response = await api.get('/messages');
       setMessages(response.data.data || []);
     } catch (err) {
-      console.log('Failed to fetch messages', err);
+
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +72,7 @@ export default function MessageCenterScreen() {
         await api.put('/messages/read', { messageId });
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isRead: true } : m));
       } catch (e) {
-        console.log('Failed to mark as read', e);
+
       }
     }
   };
