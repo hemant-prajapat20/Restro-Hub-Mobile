@@ -294,21 +294,89 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
     }
     setLoading(true);
     try {
-      // Search menu items
-      const menuRes = await api.get(`/menu?search=${encodeURIComponent(text)}`);
+      const lowerQuery = text.toLowerCase();
+      // Fetch data in parallel
+      const [menuRes, custRes, staffRes, invRes, orderRes, barRes, cafeRes, sigRes, pdrRes] = await Promise.all([
+        api.get(`/menu?search=${encodeURIComponent(text)}`).catch(() => ({ data: { data: [] } })),
+        api.get(`/customers?search=${encodeURIComponent(text)}`).catch(() => ({ data: { data: [] } })),
+        api.get('/staff').catch(() => ({ data: [] })),
+        api.get('/inventory').catch(() => ({ data: [] })),
+        api.get('/orders').catch(() => ({ data: [] })),
+        api.get('/barlounge/liquor').catch(() => ({ data: [] })),
+        api.get('/cafebakery/items').catch(() => ({ data: [] })),
+        api.get('/restro/signatures').catch(() => ({ data: [] })),
+        api.get('/restro/pdrs').catch(() => ({ data: [] }))
+      ]);
+
       const menuItems = (menuRes.data?.data || []).map((item: any) => ({
-        ...item,
-        _type: 'menu',
+        ...item, _type: 'menu', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Menu'}`
       }));
 
-      // Search customers
-      const custRes = await api.get(`/customers?search=${encodeURIComponent(text)}`);
       const customers = (custRes.data?.data || []).map((item: any) => ({
-        ...item,
-        _type: 'customer',
+        ...item, _type: 'customer', title: item.firstName ? `${item.firstName} ${item.lastName}` : item.name || 'Unknown', sub: item.email || item.phone || 'Customer'
       }));
 
-      setResults([...menuItems.slice(0, 5), ...customers.slice(0, 5)]);
+      const staff = (staffRes.data || [])
+        .filter((s: any) => s.name?.toLowerCase().includes(lowerQuery) || s.role?.toLowerCase().includes(lowerQuery))
+        .map((item: any) => ({
+          ...item, _type: 'staff', title: item.name, sub: `${item.role} · ${item.shift}`
+        }));
+
+      const inventory = (invRes.data || [])
+        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
+        .map((item: any) => ({
+          ...item, _type: 'inventory', title: item.name, sub: `${item.quantity || 0} in stock · ${item.category || 'Item'}`
+        }));
+
+      const orders = (orderRes.data || [])
+        .filter((o: any) => {
+          const oId = o.orderId || o._id || o.id || '';
+          const cName = o.customerDetails?.name || '';
+          const tName = o.type || '';
+          return oId.toLowerCase().includes(lowerQuery) || cName.toLowerCase().includes(lowerQuery) || tName.toLowerCase().includes(lowerQuery);
+        })
+        .map((item: any) => {
+          const oId = item.orderId || item._id || item.id || '';
+          const shortId = oId.slice(-8).toUpperCase();
+          const amt = item.totalAmount || item.total || item.amount || 0;
+          const isOnline = item.type === 'Delivery' || item.type === 'Takeaway';
+          return {
+            ...item, 
+            _type: isOnline ? 'order' : 'transaction', 
+            title: `Order ${shortId}`, 
+            sub: `${item.customerDetails?.name || 'Guest'} · ₹${amt} · ${item.type || 'POS'}`
+          };
+        });
+
+      const barItems = (barRes.data || [])
+        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
+        .map((item: any) => ({ ...item, _type: 'bar', title: item.name, sub: `₹${item.pricePerGlass || 0} · ${item.category || 'Bar'}` }));
+
+      const cafeItems = (cafeRes.data || [])
+        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
+        .map((item: any) => ({ ...item, _type: 'cafe', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Cafe'}` }));
+
+      const restroItems = [
+        ...(sigRes.data || [])
+          .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.course?.toLowerCase().includes(lowerQuery))
+          .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `₹${item.price || 0} · ${item.course || 'Restro Signature'}` })),
+        ...(pdrRes.data || [])
+          .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.status?.toLowerCase().includes(lowerQuery))
+          .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `${item.capacity || 0} pax · ${item.status || 'PDR Suite'}` }))
+      ];
+
+      // Combine and slice top results from each category to keep it fast
+      setResults([
+        ...menuItems.slice(0, 3),
+        ...customers.slice(0, 3),
+        ...staff.slice(0, 3),
+        ...inventory.slice(0, 3),
+        ...orders.filter((o:any) => o._type === 'transaction').slice(0, 3),
+        ...orders.filter((o:any) => o._type === 'order').slice(0, 3),
+        ...barItems.slice(0, 3),
+        ...cafeItems.slice(0, 3),
+        ...restroItems.slice(0, 3)
+      ]);
     } catch (err) {
       console.log('Search error:', err);
       setResults([]);
@@ -321,7 +389,30 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
     switch (type) {
       case 'menu': return '🍽️';
       case 'customer': return '👤';
+      case 'staff': return '👥';
+      case 'inventory': return '📦';
+      case 'order': return '🛍️';
+      case 'transaction': return '📄';
+      case 'bar': return '🍷';
+      case 'cafe': return '☕';
+      case 'restro': return '🍽️';
       default: return '🔍';
+    }
+  };
+
+  const handleResultPress = (item: any) => {
+    onClose();
+    switch (item._type) {
+      case 'menu': router.push('/admin/menu'); break;
+      case 'customer': router.push('/admin/customers'); break;
+      case 'staff': router.push('/admin/staff'); break;
+      case 'inventory': router.push('/admin/inventory'); break;
+      case 'order': router.push('/admin/delivery'); break;
+      case 'transaction': router.push('/admin/transactions'); break;
+      case 'bar': router.push('/admin/bar'); break;
+      case 'cafe': router.push('/admin/cafe'); break;
+      case 'restro': router.push('/admin/restro'); break;
+      default: break;
     }
   };
 
@@ -335,7 +426,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
               <Text style={styles.searchModalIcon}>🔍</Text>
               <TextInput
                 style={styles.searchModalInput}
-                placeholder="Search orders, menu items, customers..."
+                placeholder="Search staff, inventory, menus, orders..."
                 placeholderTextColor="#94A3B8"
                 value={query}
                 onChangeText={handleSearch}
@@ -351,7 +442,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
           {/* Results */}
           {loading ? (
             <View style={styles.searchLoading}>
-              <Text style={styles.searchLoadingText}>Searching...</Text>
+              <Text style={styles.searchLoadingText}>Searching the entire panel...</Text>
             </View>
           ) : results.length > 0 ? (
             <FlatList
@@ -359,18 +450,17 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
               keyExtractor={(item, i) => item._id || String(i)}
               style={{ maxHeight: 400 }}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.searchResultItem} activeOpacity={0.7}>
+                <TouchableOpacity 
+                  style={styles.searchResultItem} 
+                  activeOpacity={0.7}
+                  onPress={() => handleResultPress(item)}
+                >
                   <Text style={styles.searchResultIcon}>{getTypeIcon(item._type)}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.searchResultName}>
-                      {item.name || item.firstName && `${item.firstName} ${item.lastName}` || 'Unknown'}
-                    </Text>
-                    <Text style={styles.searchResultSub}>
-                      {item._type === 'menu'
-                        ? `₹${item.price || 0} · ${item.category || 'Menu Item'}`
-                        : item.email || item.phone || 'Customer'}
-                    </Text>
+                    <Text style={styles.searchResultName}>{item.title}</Text>
+                    <Text style={styles.searchResultSub}>{item.sub}</Text>
                   </View>
+                  <Text style={{ fontSize: 18, color: '#CBD5E1' }}>›</Text>
                 </TouchableOpacity>
               )}
             />
