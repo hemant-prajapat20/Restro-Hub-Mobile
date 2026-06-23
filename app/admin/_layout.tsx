@@ -21,7 +21,7 @@ import { logout } from '../../store/slices/authSlice';
 import { RootState } from '../../store';
 import api from '../../utils/api';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.75;
 
 // ──────────────────────────────────────────────
@@ -273,32 +273,49 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 };
 
 // ──────────────────────────────────────────────
-// Search Modal Component
+// Header / Navbar Component
 // ──────────────────────────────────────────────
-interface SearchModalProps {
-  visible: boolean;
-  onClose: () => void;
+interface HeaderProps {
+  onOpenSidebar: () => void;
 }
 
-const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
+const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
+  const router = useRouter();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const initials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : 'G';
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Search State
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchCache, setSearchCache] = useState<any>(null);
 
-  const handleSearch = useCallback(async (text: string) => {
-    setQuery(text);
-    if (text.trim().length < 2) {
-      setResults([]);
-      return;
+  const extractArray = (res: any): any[] => {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (res.data && Array.isArray(res.data)) return res.data;
+    if (res.data?.data && Array.isArray(res.data.data)) return res.data.data;
+    // Look for any array value in the object
+    const obj = res.data || res;
+    if (typeof obj === 'object') {
+      const vals = Object.values(obj);
+      const arr = vals.find(v => Array.isArray(v));
+      if (arr) return arr as any[];
     }
+    return [];
+  };
+
+  const prefetchSearchData = async () => {
+    if (searchCache) return;
     setLoading(true);
     try {
-      const lowerQuery = text.toLowerCase();
-      // Fetch data in parallel
       const [menuRes, custRes, staffRes, invRes, orderRes, barRes, cafeRes, sigRes, pdrRes] = await Promise.all([
-        api.get(`/menu?search=${encodeURIComponent(text)}`).catch(() => ({ data: { data: [] } })),
-        api.get(`/customers?search=${encodeURIComponent(text)}`).catch(() => ({ data: { data: [] } })),
+        api.get(`/menu`).catch(() => ({ data: [] })),
+        api.get(`/customers`).catch(() => ({ data: [] })),
         api.get('/staff').catch(() => ({ data: [] })),
         api.get('/inventory').catch(() => ({ data: [] })),
         api.get('/orders').catch(() => ({ data: [] })),
@@ -308,82 +325,111 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
         api.get('/restro/pdrs').catch(() => ({ data: [] }))
       ]);
 
-      const menuItems = (menuRes.data?.data || []).map((item: any) => ({
-        ...item, _type: 'menu', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Menu'}`
-      }));
+      setSearchCache({
+        menu: extractArray(menuRes),
+        cust: extractArray(custRes),
+        staff: extractArray(staffRes),
+        inv: extractArray(invRes),
+        orders: extractArray(orderRes),
+        bar: extractArray(barRes),
+        cafe: extractArray(cafeRes),
+        sig: extractArray(sigRes),
+        pdr: extractArray(pdrRes)
+      });
+    } catch (err) {
+      console.log('Search prefetch error:', err);
+    } finally {
+      if (query.length < 2) setLoading(false);
+    }
+  };
 
-      const customers = (custRes.data?.data || []).map((item: any) => ({
+  const executeLocalSearch = (text: string, data: any) => {
+    const lowerQuery = text.toLowerCase();
+    const searchTerms = lowerQuery.split(/\s+/).filter(Boolean);
+    const matchesSearch = (...fields: (string | undefined | null)[]) => {
+      return searchTerms.every(term => fields.some(f => (f || '').toLowerCase().includes(term)));
+    };
+
+    const menuItems = data.menu
+      .filter((i: any) => matchesSearch(i.name, i.category))
+      .map((item: any) => ({ ...item, _type: 'menu', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Menu'}` }));
+    
+    const customers = data.cust
+      .filter((i: any) => matchesSearch(i.firstName, i.lastName, i.name, i.email, i.phone))
+      .map((item: any) => ({
         ...item, _type: 'customer', title: item.firstName ? `${item.firstName} ${item.lastName}` : item.name || 'Unknown', sub: item.email || item.phone || 'Customer'
       }));
+    
+    const staff = data.staff
+      .filter((s: any) => matchesSearch(s.name, s.role))
+      .map((item: any) => ({ ...item, _type: 'staff', title: item.name, sub: `${item.role} · ${item.shift}` }));
+    
+    const inventory = data.inv
+      .filter((i: any) => matchesSearch(i.name, i.category))
+      .map((item: any) => ({ ...item, _type: 'inventory', title: item.name, sub: `${item.quantity || 0} in stock · ${item.category || 'Item'}` }));
+    
+    const orders = data.orders
+      .filter((o: any) => matchesSearch(o.orderId, o._id, o.id, o.customerDetails?.name, o.type))
+      .map((item: any) => {
+        const oId = item.orderId || item._id || item.id || '';
+        const shortId = oId.slice(-8).toUpperCase();
+        const amt = item.totalAmount || item.total || item.amount || 0;
+        const isOnline = item.type === 'Delivery' || item.type === 'Takeaway';
+        return { ...item, _type: isOnline ? 'order' : 'transaction', title: `Order ${shortId}`, sub: `${item.customerDetails?.name || 'Guest'} · ₹${amt} · ${item.type || 'POS'}` };
+      });
+    
+    const barItems = data.bar
+      .filter((i: any) => matchesSearch(i.name, i.category))
+      .map((item: any) => ({ ...item, _type: 'bar', title: item.name, sub: `₹${item.pricePerGlass || 0} · ${item.category || 'Bar'}` }));
+    
+    const cafeItems = data.cafe
+      .filter((i: any) => matchesSearch(i.name, i.category))
+      .map((item: any) => ({ ...item, _type: 'cafe', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Cafe'}` }));
+    
+    const restroItems = [
+      ...(data.sig || [])
+        .filter((i: any) => matchesSearch(i.name, i.course))
+        .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `₹${item.price || 0} · ${item.course || 'Restro Signature'}` })),
+      ...(data.pdr || [])
+        .filter((i: any) => matchesSearch(i.name, i.status))
+        .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `${item.capacity || 0} pax · ${item.status || 'PDR Suite'}` }))
+    ];
 
-      const staff = (staffRes.data || [])
-        .filter((s: any) => s.name?.toLowerCase().includes(lowerQuery) || s.role?.toLowerCase().includes(lowerQuery))
-        .map((item: any) => ({
-          ...item, _type: 'staff', title: item.name, sub: `${item.role} · ${item.shift}`
-        }));
+    setResults([
+      ...menuItems.slice(0, 3),
+      ...customers.slice(0, 3),
+      ...staff.slice(0, 3),
+      ...inventory.slice(0, 3),
+      ...orders.filter((o:any) => o._type === 'transaction').slice(0, 3),
+      ...orders.filter((o:any) => o._type === 'order').slice(0, 3),
+      ...barItems.slice(0, 3),
+      ...cafeItems.slice(0, 3),
+      ...restroItems.slice(0, 3)
+    ]);
+    setLoading(false);
+  };
 
-      const inventory = (invRes.data || [])
-        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
-        .map((item: any) => ({
-          ...item, _type: 'inventory', title: item.name, sub: `${item.quantity || 0} in stock · ${item.category || 'Item'}`
-        }));
-
-      const orders = (orderRes.data || [])
-        .filter((o: any) => {
-          const oId = o.orderId || o._id || o.id || '';
-          const cName = o.customerDetails?.name || '';
-          const tName = o.type || '';
-          return oId.toLowerCase().includes(lowerQuery) || cName.toLowerCase().includes(lowerQuery) || tName.toLowerCase().includes(lowerQuery);
-        })
-        .map((item: any) => {
-          const oId = item.orderId || item._id || item.id || '';
-          const shortId = oId.slice(-8).toUpperCase();
-          const amt = item.totalAmount || item.total || item.amount || 0;
-          const isOnline = item.type === 'Delivery' || item.type === 'Takeaway';
-          return {
-            ...item, 
-            _type: isOnline ? 'order' : 'transaction', 
-            title: `Order ${shortId}`, 
-            sub: `${item.customerDetails?.name || 'Guest'} · ₹${amt} · ${item.type || 'POS'}`
-          };
-        });
-
-      const barItems = (barRes.data || [])
-        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
-        .map((item: any) => ({ ...item, _type: 'bar', title: item.name, sub: `₹${item.pricePerGlass || 0} · ${item.category || 'Bar'}` }));
-
-      const cafeItems = (cafeRes.data || [])
-        .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.category?.toLowerCase().includes(lowerQuery))
-        .map((item: any) => ({ ...item, _type: 'cafe', title: item.name, sub: `₹${item.price || 0} · ${item.category || 'Cafe'}` }));
-
-      const restroItems = [
-        ...(sigRes.data || [])
-          .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.course?.toLowerCase().includes(lowerQuery))
-          .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `₹${item.price || 0} · ${item.course || 'Restro Signature'}` })),
-        ...(pdrRes.data || [])
-          .filter((i: any) => i.name?.toLowerCase().includes(lowerQuery) || i.status?.toLowerCase().includes(lowerQuery))
-          .map((item: any) => ({ ...item, _type: 'restro', title: item.name, sub: `${item.capacity || 0} pax · ${item.status || 'PDR Suite'}` }))
-      ];
-
-      // Combine and slice top results from each category to keep it fast
-      setResults([
-        ...menuItems.slice(0, 3),
-        ...customers.slice(0, 3),
-        ...staff.slice(0, 3),
-        ...inventory.slice(0, 3),
-        ...orders.filter((o:any) => o._type === 'transaction').slice(0, 3),
-        ...orders.filter((o:any) => o._type === 'order').slice(0, 3),
-        ...barItems.slice(0, 3),
-        ...cafeItems.slice(0, 3),
-        ...restroItems.slice(0, 3)
-      ]);
-    } catch (err) {
-      console.log('Search error:', err);
+  const handleSearch = (text: string) => {
+    setQuery(text);
+    if (text.trim().length < 2) {
       setResults([]);
-    } finally {
-      setLoading(false);
+      return;
     }
-  }, []);
+
+    if (!searchCache) {
+      setLoading(true);
+      return;
+    }
+
+    executeLocalSearch(text, searchCache);
+  };
+
+  useEffect(() => {
+    if (searchCache && query.length >= 2) {
+      executeLocalSearch(query, searchCache);
+    }
+  }, [searchCache]);
+  // Filter code replaced above
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -401,7 +447,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
   };
 
   const handleResultPress = (item: any) => {
-    onClose();
+    setIsSearchFocused(false);
+    setQuery('');
+    setResults([]);
     switch (item._type) {
       case 'menu': router.push('/admin/menu'); break;
       case 'customer': router.push('/admin/customers'); break;
@@ -415,81 +463,6 @@ const SearchModal: React.FC<SearchModalProps> = ({ visible, onClose }) => {
       default: break;
     }
   };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.searchModalOverlay}>
-        <View style={styles.searchModalContent}>
-          {/* Search Input */}
-          <View style={styles.searchModalHeader}>
-            <View style={styles.searchModalInputRow}>
-              <Text style={styles.searchModalIcon}>🔍</Text>
-              <TextInput
-                style={styles.searchModalInput}
-                placeholder="Search staff, inventory, menus, orders..."
-                placeholderTextColor="#94A3B8"
-                value={query}
-                onChangeText={handleSearch}
-                autoFocus
-                returnKeyType="search"
-              />
-              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); onClose(); }}>
-                <Text style={styles.searchModalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Results */}
-          {loading ? (
-            <View style={styles.searchLoading}>
-              <Text style={styles.searchLoadingText}>Searching the entire panel...</Text>
-            </View>
-          ) : results.length > 0 ? (
-            <FlatList
-              data={results}
-              keyExtractor={(item, i) => item._id || String(i)}
-              style={{ maxHeight: 400 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.searchResultItem} 
-                  activeOpacity={0.7}
-                  onPress={() => handleResultPress(item)}
-                >
-                  <Text style={styles.searchResultIcon}>{getTypeIcon(item._type)}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.searchResultName}>{item.title}</Text>
-                    <Text style={styles.searchResultSub}>{item.sub}</Text>
-                  </View>
-                  <Text style={{ fontSize: 18, color: '#CBD5E1' }}>›</Text>
-                </TouchableOpacity>
-              )}
-            />
-          ) : query.length >= 2 ? (
-            <View style={styles.searchLoading}>
-              <Text style={styles.searchLoadingText}>No results found</Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-// ──────────────────────────────────────────────
-// Header / Navbar Component
-// ──────────────────────────────────────────────
-interface HeaderProps {
-  onOpenSidebar: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
-  const router = useRouter();
-  const user = useSelector((state: RootState) => state.auth.user);
-  const initials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : 'G';
-
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   // Fetch notifications on mount (same logic as web Header)
   useEffect(() => {
@@ -550,16 +523,46 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
 
   return (
     <View style={styles.header}>
+      {/* Search Overlay to catch outside clicks */}
+      {isSearchFocused && (
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.searchOverlay}
+          onPress={() => {
+            setIsSearchFocused(false);
+            import('react-native').then(rn => rn.Keyboard.dismiss());
+          }}
+        />
+      )}
+
       {/* Hamburger */}
       <TouchableOpacity onPress={onOpenSidebar} style={styles.hamburger} activeOpacity={0.7}>
         <Text style={styles.hamburgerIcon}>☰</Text>
       </TouchableOpacity>
 
-      {/* Search bar — opens search modal on tap */}
-      <TouchableOpacity style={styles.searchBar} activeOpacity={0.7} onPress={() => setShowSearch(true)}>
+      {/* Inline Search bar */}
+      <View style={[styles.searchBar, isSearchFocused && { borderColor: '#D4AF37', borderWidth: 1, backgroundColor: '#FFFFFF' }]}>
         <Text style={styles.searchIcon}>🔍</Text>
-        <Text style={styles.searchPlaceholder}>Search orders, menu...</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={styles.searchInputInline}
+          placeholder="Search menu, orders..."
+          placeholderTextColor="#94A3B8"
+          value={query}
+          numberOfLines={1}
+          multiline={false}
+          onChangeText={handleSearch}
+          onFocus={() => {
+            setIsSearchFocused(true);
+            prefetchSearchData();
+          }}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => { setQuery(''); setResults([]); }}>
+            <Text style={styles.searchClearIcon}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Right side: bell + avatar */}
       <View style={styles.headerRight}>
@@ -606,11 +609,41 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
         onMarkOneRead={markOneRead}
       />
 
-      {/* Search Modal */}
-      <SearchModal
-        visible={showSearch}
-        onClose={() => setShowSearch(false)}
-      />
+      {/* Inline Dropdown mapped to an absolute positioned View */}
+      {isSearchFocused && query.length >= 2 && (
+        <View style={styles.inlineSearchDropdown}>
+          {loading ? (
+            <View style={styles.searchLoading}>
+              <Text style={styles.searchLoadingText}>Searching the entire panel...</Text>
+            </View>
+          ) : results.length > 0 ? (
+            <FlatList
+              data={results}
+              keyExtractor={(item, i) => `${item._type}_${item._id || item.id || i}`}
+              keyboardShouldPersistTaps="handled"
+              style={{ maxHeight: 400 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.searchResultItem} 
+                  activeOpacity={0.7}
+                  onPress={() => handleResultPress(item)}
+                >
+                  <Text style={styles.searchResultIcon}>{getTypeIcon(item._type)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.searchResultName}>{item.title}</Text>
+                    <Text style={styles.searchResultSub}>{item.sub}</Text>
+                  </View>
+                  <Text style={{ fontSize: 18, color: '#CBD5E1' }}>›</Text>
+                </TouchableOpacity>
+              )}
+            />
+          ) : (
+            <View style={styles.searchLoading}>
+              <Text style={styles.searchLoadingText}>No results found. Search something else.</Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -658,6 +691,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     gap: 8,
+    zIndex: 100, // ensure dropdown sits on top
+  },
+  searchOverlay: {
+    position: 'absolute',
+    top: 50 + (Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 4 : 48),
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    backgroundColor: 'transparent',
+    zIndex: 90,
   },
   hamburger: {
     width: 40,
@@ -682,10 +725,18 @@ const styles = StyleSheet.create({
   searchIcon: {
     fontSize: 14,
   },
-  searchPlaceholder: {
+  searchInputInline: {
+    flex: 1,
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#0F172A',
     fontWeight: '500',
+    padding: 0,
+    margin: 0,
+  },
+  searchClearIcon: {
+    fontSize: 12,
+    color: '#94A3B8',
+    padding: 4,
   },
   headerRight: {
     flexDirection: 'row',
@@ -978,22 +1029,20 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
   },
 
-  // ── Search Modal ──
-  searchModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.6)',
-    justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 10 : 60,
-  },
-  searchModalContent: {
-    marginHorizontal: 12,
+  // ── Inline Search Dropdown ──
+  inlineSearchDropdown: {
+    position: 'absolute',
+    top: 50 + (Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 4 : 48) + 2,
+    left: 12,
+    right: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
+    zIndex: 101, // Must be higher than searchOverlay
   },
   searchModalHeader: {
     padding: 12,

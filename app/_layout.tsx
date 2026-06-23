@@ -4,7 +4,14 @@ import { Provider } from 'react-redux';
 import { store } from '../store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GlobalStateProvider } from './admin/context/GlobalState';
+import { LogBox } from 'react-native';
 
+LogBox.ignoreLogs([
+  'ProgressBarAndroid has been extracted',
+  'SafeAreaView has been deprecated',
+  'Clipboard has been extracted',
+  'PushNotificationIOS has been extracted'
+]);
 // Initialize QueryClient outside the component to prevent recreation on every render.
 // Configured with 5-minute staleTime for aggressive caching and faster transitions.
 const queryClient = new QueryClient({
