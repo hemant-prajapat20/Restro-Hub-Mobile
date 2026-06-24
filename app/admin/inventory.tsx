@@ -66,6 +66,7 @@ export default function InventoryScreen() {
   const handleQuickAdd = async (id: string, current: number) => {
     try {
       await api.put(`/inventory/${id}`, { quantityInStock: current + 10 });
+      Alert.alert('Success', 'Item successfully received (+10).');
       fetchInventory();
     } catch (e) {
       Alert.alert('Error', 'Failed to update stock');
@@ -75,6 +76,7 @@ export default function InventoryScreen() {
   const handleQuickDispatch = async (id: string, current: number) => {
     try {
       await api.put(`/inventory/${id}`, { quantityInStock: Math.max(0, current - 5) });
+      Alert.alert('Success', 'Item successfully dispatched (-5).');
       fetchInventory();
     } catch (e) {
       Alert.alert('Error', 'Failed to dispatch stock');
@@ -98,8 +100,10 @@ export default function InventoryScreen() {
     try {
       if (editingId) {
         await api.put(`/inventory/${editingId}`, payload);
+        Alert.alert('Success', 'Details updated and saved.');
       } else {
         await api.post('/inventory', payload);
+        Alert.alert('Success', 'New catalog item created.');
       }
       setShowAddModal(false);
       fetchInventory();

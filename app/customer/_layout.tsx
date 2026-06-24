@@ -33,7 +33,7 @@ export default function CustomerLayout() {
       shouldRouteThroughEarpiece: false
     });
 
-    const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const socketUrl = 'https://restro-hub-0fmy.onrender.com';
     const socket = io(socketUrl); 
     
     const handleNewNotification = async (notif: any) => {

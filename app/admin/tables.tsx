@@ -320,13 +320,48 @@ export default function TablesScreen() {
         <View style={{ backgroundColor: '#FEFCE8', padding: 16, marginHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#CA8A04', marginBottom: 16 }}>
           <Text style={{ fontWeight: '800', color: '#CA8A04' }}>Merge Mode Active</Text>
           <Text style={{ fontSize: 12, color: '#A16207', marginBottom: 12 }}>Select the primary table, then secondary tables to link.</Text>
+          
+          {selectedMergeTables.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedMergeTables.map((id, index) => {
+                const t = floorTables.find(ft => ft._id === id);
+                const isPrimary = index === 0;
+                return (
+                  <View key={id} style={{ 
+                    backgroundColor: isPrimary ? '#CA8A04' : '#FEF08A', 
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                    borderWidth: 1, borderColor: isPrimary ? '#A16207' : '#FDE047'
+                  }}>
+                    <Text style={{ 
+                      color: isPrimary ? '#FFFFFF' : '#854D0E', 
+                      fontSize: 12, fontWeight: '800' 
+                    }}>
+                      {isPrimary ? '👑 ' : ''}T{t?.number || '?'}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
           <TouchableOpacity 
             disabled={selectedMergeTables.length < 2}
-            style={[styles.actBtn, {backgroundColor: '#CA8A04', opacity: selectedMergeTables.length < 2 ? 0.5 : 1}]}
+            style={{
+              backgroundColor: '#C5A059', 
+              opacity: selectedMergeTables.length < 2 ? 0.5 : 1,
+              borderRadius: 12,
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              alignSelf: 'center',
+              width: '90%',
+              marginTop: 8
+            }}
             onPress={handleMerge}
           >
-            <Text style={{color: '#fff', fontWeight: '800'}}>MERGE {selectedMergeTables.length} TABLES</Text>
-          </TouchableOpacity>
+            <Text style={{color: '#FFFFFF', fontWeight: '900', fontSize: 18, letterSpacing: 0.5}}>MERGE {Math.max(selectedMergeTables.length, 2)} TABLES</Text>
+``          </TouchableOpacity>
         </View>
       )}
 

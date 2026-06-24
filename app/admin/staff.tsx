@@ -157,8 +157,10 @@ export default function StaffScreen() {
 
       if (editingStaffId) {
         await api.put(`/staff/${editingStaffId}`, payload);
+        Alert.alert('Success', 'Details updated and saved.');
       } else {
         await api.post('/staff', { ...payload, status: 'Off-Duty' });
+        Alert.alert('Success', 'New staff member added.');
       }
 
       setShowAddModal(false);
