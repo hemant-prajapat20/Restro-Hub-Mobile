@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
   emptyText: { textAlign: 'center', color: '#64748B', marginTop: 40, fontWeight: '600' },
 
-  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden' },
+  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#1E293B', overflow: 'hidden' },
   cardHeader: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 48, height: 48, borderRadius: 24 },

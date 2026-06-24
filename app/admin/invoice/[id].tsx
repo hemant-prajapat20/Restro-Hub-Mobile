@@ -248,13 +248,13 @@ export default function InvoiceViewScreen() {
         <View style={styles.invoiceCard}>
           {/* Golden Header */}
           <View style={styles.goldenHeader}>
-            <View>
-              <Text style={styles.brandTitle}>RESTROHUB</Text>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.brandTitle} numberOfLines={1} adjustsFontSizeToFit>RESTROHUB</Text>
               <Text style={styles.brandSub}>Premium Dining Solutions</Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
               <Text style={styles.invoiceLabel}>Tax Invoice</Text>
-              <Text style={styles.invoiceNumber}>INV/2026/{invoiceId}</Text>
+              <Text style={styles.invoiceNumber} numberOfLines={1} adjustsFontSizeToFit>INV/2026/{invoiceId?.slice(-8).toUpperCase() || invoiceId}</Text>
               <Text style={styles.invoiceDate}>Dated: {dateFormatted}</Text>
             </View>
           </View>
