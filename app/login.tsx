@@ -16,6 +16,8 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isWakingServer, setIsWakingServer] = useState(false);
+
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
@@ -24,11 +26,19 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     setError('');
+    
+    // If request takes more than 3 seconds, assume the free-tier server is cold starting
+    let wakeUpTimer = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 3000);
 
     try {
       // Direct integration with backend API
       const response = await axios.post(`${API_URL}/auth/login`, formData);
       const data = response.data;
+      
+      clearTimeout(wakeUpTimer);
+      setIsWakingServer(false);
 
       dispatch(setCredentials({
         user: {
@@ -57,9 +67,13 @@ export default function LoginScreen() {
         }
       }, 50);
     } catch (err: any) {
+      clearTimeout(wakeUpTimer);
+      setIsWakingServer(false);
       setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
     } finally {
+      clearTimeout(wakeUpTimer);
       setIsLoading(false);
+      setIsWakingServer(false);
     }
   };
 
@@ -122,7 +136,10 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#000000" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator color="#000000" />
+                  {isWakingServer && <Text style={styles.buttonText}>WAKING SERVER...</Text>}
+                </View>
               ) : (
                 <Text style={styles.buttonText}>SECURE LOGIN</Text>
               )}

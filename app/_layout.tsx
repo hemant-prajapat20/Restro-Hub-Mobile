@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
 import { store } from '../store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GlobalStateProvider } from './admin/context/GlobalState';
 import { LogBox } from 'react-native';
+import axios from 'axios';
 
 LogBox.ignoreLogs([
   'ProgressBarAndroid has been extracted',
@@ -26,6 +27,12 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  useEffect(() => {
+    // ⚡ PRE-WARMING: Ping the Render free tier server immediately when the app launches.
+    // This wakes up the backend in the background while the user is typing their credentials!
+    axios.get('https://restro-hub-0fmy.onrender.com/api').catch(() => {});
+  }, []);
+
   return (
     <Provider store={store}>
       <GlobalStateProvider>
