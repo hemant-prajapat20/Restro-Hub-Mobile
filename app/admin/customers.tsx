@@ -123,6 +123,7 @@ export default function CustomersScreen() {
           <TextInput 
             style={styles.searchBar} 
             placeholder="Search name, phone, or ID..." 
+            placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: 14, fontWeight: '900', color: '#0F172A', marginTop: 2 },
 
   filters: { backgroundColor: '#fff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
-  searchBar: { backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, fontSize: 14, color: '#0F172A', fontWeight: '500' },
+  searchBar: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', padding: 12, borderRadius: 12, fontSize: 14, color: '#0F172A', fontWeight: '600' },
   filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' },
   filterBtnActive: { backgroundColor: '#C5A059', borderColor: '#C5A059' },
   filterBtnTxt: { fontSize: 12, fontWeight: '700', color: '#64748B' },
