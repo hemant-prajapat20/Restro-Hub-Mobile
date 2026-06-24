@@ -10,7 +10,8 @@ import {
   Alert,
   Image,
   Switch,
-  FlatList
+  FlatList,
+  ScrollView
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../utils/api';
