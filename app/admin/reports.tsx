@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  Modal,
+  Platform,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
@@ -40,9 +42,25 @@ const StatCard = ({ title, value, subValue, trend, icon, bgColor }: any) => (
 );
 
 export default function ReportsScreen() {
-  const [month, setMonth] = useState('2026-04'); // default for demo
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const generatedMonths = React.useMemo(() => {
+    const months = [];
+    const d = new Date();
+    for (let i = 0; i < 12; i++) {
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+      d.setMonth(d.getMonth() - 1);
+    }
+    return months.reverse(); // chronological order
+  }, []);
+
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   useEffect(() => {
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://192.168.1.100:5000';
@@ -124,12 +142,13 @@ export default function ReportsScreen() {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D4AF37']} />}
-    >
+    <>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#D4AF37']} />}
+      >
       <View style={styles.header}>
         <View style={{ flex: 1, paddingRight: 12 }}>
           <Text style={styles.headerTitle} numberOfLines={2} adjustsFontSizeToFit>Financial Audit & GST</Text>
@@ -142,8 +161,14 @@ export default function ReportsScreen() {
 
       {/* ── Month Selector ── */}
       <View style={{ marginBottom: 20 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 4, gap: 10 }}>
-          {['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'].map((m) => {
+        <ScrollView 
+          ref={scrollViewRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={{ paddingHorizontal: 4, gap: 10 }}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+        >
+          {generatedMonths.map((m) => {
             const isSelected = month === m;
             const date = new Date(`${m}-01`);
             const label = date.toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -263,21 +288,82 @@ export default function ReportsScreen() {
           <Text style={styles.noDataText}>No recent invoices.</Text>
         ) : (
           recentInvoices.map((inv: any, i: number) => (
-            <View key={i} style={styles.invoiceRow}>
+            <TouchableOpacity key={i} style={styles.invoiceRow} onPress={() => setSelectedInvoice(inv)}>
               <View>
                 <Text style={styles.invId}>#{inv.transactionId || inv._id?.slice(-8).toUpperCase() || inv.id?.slice(-8).toUpperCase()}</Text>
                 <Text style={styles.invDate}>{new Date(inv.date || inv.createdAt).toLocaleString()}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.invAmount}>₹{inv.total?.toLocaleString()}</Text>
+                <Text style={styles.invAmount}>₹{inv.amount?.toLocaleString() || inv.total?.toLocaleString()}</Text>
                 <Text style={styles.invGst}>GST: ₹{inv.tax?.toLocaleString() || 0}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
       <View style={{ height: 40 }} />
     </ScrollView>
+
+    {/* Transaction Details Modal */}
+    <Modal visible={!!selectedInvoice} animationType="slide" transparent={true} onRequestClose={() => setSelectedInvoice(null)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {selectedInvoice && (
+            <>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>🧾 Transaction Details</Text>
+                  <Text style={styles.modalSub}>ID: {selectedInvoice.transactionId || selectedInvoice._id?.slice(-8).toUpperCase() || selectedInvoice.id?.slice(-8).toUpperCase()}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedInvoice(null)} style={styles.closeBtn}>
+                  <Text style={{ fontSize: 20, color: '#94A3B8' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.modalScroll}>
+                <View style={styles.customerBox}>
+                  <Text style={styles.sectionLabel}>Customer Details</Text>
+                  <Text style={styles.customerName}>{selectedInvoice.customerDetails?.name || 'Walk-in Customer'}</Text>
+                  <Text style={styles.customerPhone}>{selectedInvoice.customerDetails?.phone || '+91 - Not Provided'}</Text>
+                </View>
+
+                <View style={styles.itemsBox}>
+                  <Text style={styles.sectionLabel}>Order Items</Text>
+                  {selectedInvoice.items?.length > 0 ? selectedInvoice.items.map((item: any, idx: number) => (
+                    <View key={idx} style={styles.itemRow}>
+                      <Text style={styles.itemText}>{item.quantity}x {item.name}</Text>
+                      <Text style={styles.itemPrice}>₹{item.price * item.quantity}</Text>
+                    </View>
+                  )) : <Text style={styles.noDataText}>No items detailed.</Text>}
+                </View>
+
+                <View style={styles.totalsBox}>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Subtotal</Text>
+                    <Text style={styles.totalValue}>₹{(selectedInvoice.subtotal || (selectedInvoice.amount - selectedInvoice.tax))?.toLocaleString()}</Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>GST Applied</Text>
+                    <Text style={styles.totalValue}>₹{selectedInvoice.tax?.toLocaleString()}</Text>
+                  </View>
+                  <View style={[styles.totalRow, styles.grandTotalRow]}>
+                    <Text style={styles.grandTotalLabel}>Grand Total ({selectedInvoice.paymentMethod})</Text>
+                    <Text style={styles.grandTotalValue}>₹{(selectedInvoice.amount || selectedInvoice.total)?.toLocaleString()}</Text>
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedInvoice(null)}>
+                  <Text style={styles.backBtnText}>CLOSE</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  </>
   );
 }
 
@@ -325,4 +411,30 @@ const styles = StyleSheet.create({
   invDate: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
   invAmount: { fontWeight: '700', color: '#1E293B' },
   invGst: { fontSize: 12, color: '#10B981', marginTop: 2, fontWeight: '600' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', padding: 16 },
+  modalContent: { backgroundColor: '#FFF', borderRadius: 32, padding: 24, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
+  modalSub: { fontSize: 12, color: '#64748B', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 4 },
+  closeBtn: { padding: 4, backgroundColor: '#F8FAFC', borderRadius: 20 },
+  modalScroll: { marginBottom: 16 },
+  customerBox: { backgroundColor: '#FFFBEB', padding: 16, borderRadius: 16, borderColor: '#FEF3C7', borderWidth: 1, marginBottom: 16 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: '#D97706', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  customerName: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  customerPhone: { fontSize: 12, color: '#64748B', fontWeight: '500', marginTop: 2 },
+  itemsBox: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, borderColor: '#F1F5F9', borderWidth: 1, marginBottom: 16 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  itemText: { fontSize: 12, fontWeight: '600', color: '#334155' },
+  itemPrice: { fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#0F172A' },
+  totalsBox: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, borderColor: '#F1F5F9', borderWidth: 1 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  totalLabel: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  totalValue: { fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#0F172A', fontWeight: '700' },
+  grandTotalRow: { paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0', marginTop: 4 },
+  grandTotalLabel: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  grandTotalValue: { fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#D4AF37', fontWeight: '800' },
+  modalFooter: { borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 16 },
+  backBtn: { padding: 14, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, alignItems: 'center' },
+  backBtnText: { color: '#64748B', fontWeight: '700', fontSize: 12, letterSpacing: 1 }
 });
