@@ -6,15 +6,15 @@
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon1.jpg",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F08C1D",
-        "foregroundImage": "./assets/icon.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/icon1.jpg"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anshulrequin.Restrohubmobile",
