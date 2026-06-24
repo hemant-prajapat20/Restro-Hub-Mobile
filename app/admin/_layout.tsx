@@ -19,16 +19,24 @@ import { useRouter, usePathname, Slot } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { RootState } from '../../store';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import api from '../../utils/api';
+import { io } from 'socket.io-client';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.75;
 
 // ──────────────────────────────────────────────
-// Notification Alert Helper (vibration)
+// Notification Alert Helper (vibration & sound)
 // ──────────────────────────────────────────────
 const playNotificationAlert = () => {
-  Vibration.vibrate([0, 200, 100, 200]); // pattern: pause, buzz, pause, buzz
+  try {
+    Vibration.vibrate([0, 200, 100, 200]); // pattern: pause, buzz, pause, buzz
+    const player = createAudioPlayer('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    player.play();
+  } catch (e) {
+    console.log('Failed to play notification sound', e);
+  }
 };
 
 // ──────────────────────────────────────────────
@@ -466,6 +474,13 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
 
   // Fetch notifications on mount (same logic as web Header)
   useEffect(() => {
+    // Configure Audio to play even in silent mode for POS / Admin alerts
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      shouldRouteThroughEarpiece: false
+    }).catch(() => {});
+
     const fetchNotifications = async () => {
       try {
         const res = await api.get('/messages');
@@ -478,27 +493,33 @@ const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
     };
     fetchNotifications();
 
-    // Poll every 30 seconds for new notifications (mobile-safe alternative to socket.io)
-    const interval = setInterval(async () => {
-      try {
-        const res = await api.get('/messages');
-        if (res.data.status === 'success') {
-          const newData = res.data.data;
-          // Check for new unread messages
-          const prevUnread = notifications.filter(n => !n.isRead).length;
-          const newUnread = newData.filter((n: any) => !n.isRead).length;
-          if (newUnread > prevUnread) {
-            playNotificationAlert();
-            Vibration.vibrate(300);
-          }
-          setNotifications(newData);
-        }
-      } catch (err) {
-        // Silently fail for polling
-      }
-    }, 30000);
+    // Connect to WebSocket for instant global alerts
+    const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const socket = io(socketUrl);
+    
+    const handleNewAlert = (data: any) => {
+      fetchNotifications(); // Refresh badge count instantly
+      playNotificationAlert();
+      Vibration.vibrate(300);
+      
+      // Show instant OS banner
+      const msgText = data?.message || "You have a new alert";
+      import('expo-notifications').then((Notifications) => {
+        Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false }) });
+        Notifications.scheduleNotificationAsync({
+          content: { title: "RestroHub Alert", body: msgText },
+          trigger: null,
+        });
+      });
+    };
 
-    return () => clearInterval(interval);
+    socket.on('newMessage', handleNewAlert);
+    socket.on('newOrder', () => handleNewAlert({ message: 'A new order was just placed' }));
+    socket.on('paymentReceived', () => handleNewAlert({ message: 'A payment was just received' }));
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;

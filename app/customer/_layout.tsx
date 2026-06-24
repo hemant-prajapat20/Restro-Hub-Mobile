@@ -36,17 +36,32 @@ export default function CustomerLayout() {
     const socketUrl = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const socket = io(socketUrl); 
     
-    socket.on('newCustomerNotification', async (notif: any) => {
-      if (notif.customerId === currentUser?._id) {
-        refetchNotifications();
-        try {
-          Vibration.vibrate();
-          const player = createAudioPlayer('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-          player.play();
-        } catch (e) {
+    const handleNewNotification = async (notif: any) => {
+      if (!notif || notif.customerId !== currentUser?._id) return;
+      
+      refetchNotifications();
+      try {
+        // Native banner message
+        import('expo-notifications').then((Notifications) => {
+          Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false }) });
+          Notifications.scheduleNotificationAsync({
+            content: { title: "RestroHub Update", body: notif.message || "Your order status has been updated!" },
+            trigger: null,
+          });
+        });
 
-        }
+        Vibration.vibrate([0, 200, 100, 200]);
+        const player = createAudioPlayer('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        player.play();
+      } catch (e) {
+        console.log('Failed to play customer notification sound', e);
       }
+    };
+
+    socket.on('newCustomerNotification', handleNewNotification);
+    socket.on('orderStatusUpdated', (data: any) => {
+       // If the backend sends an orderStatusUpdated event for this customer, alert them!
+       handleNewNotification({ customerId: currentUser?._id, message: data?.message || "Your order status has been updated!" });
     });
 
     return () => {
